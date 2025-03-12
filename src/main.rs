@@ -1,17 +1,44 @@
+use std::time::Duration;
+
 use bevy::{
     prelude::*,
+    time::common_conditions::on_timer,
     window::{PrimaryWindow, WindowResolution},
 };
+use rand::random;
 
 // Constants
 const SNAKE_HEAD_COLOR: Color = Color::srgb(0.7, 0.7, 0.7);
+const FOOD_COLOR: Color = Color::srgb(1.0, 0.0, 1.0);
 
 const ARENA_WIDTH: u32 = 10;
 const ARENA_HEIGHT: u32 = 10;
 
 // Components
+#[derive(Component, PartialEq, Copy, Clone)]
+enum Direction {
+    Left,
+    Up,
+    Right,
+    Down,
+}
+
+impl Direction {
+    fn opposite(self) -> Self {
+        match self {
+            Self::Left => Self::Right,
+            Self::Right => Self::Left,
+            Self::Up => Self::Down,
+            Self::Down => Self::Up,
+        }
+    }
+}
+
 #[derive(Component)]
 struct SnakeHead;
+
+#[derive(Component)]
+struct Food;
 
 #[derive(Component, Clone, Copy, PartialEq, Eq)]
 struct Position {
@@ -45,29 +72,57 @@ fn spawn_snake(mut commands: Commands) {
             ..default()
         },))
         .insert(SnakeHead)
+        .insert(Direction::Up)
         .insert(Position { x: 3, y: 3 })
         .insert(Size::square(0.8));
 }
 
-fn snake_movement(
+fn spawn_food(mut commands: Commands) {
+    commands
+        .spawn((Sprite {
+            color: FOOD_COLOR,
+            ..default()
+        },))
+        .insert(Food)
+        .insert(Position {
+            x: (random::<f32>() * ARENA_WIDTH as f32) as i32,
+            y: (random::<f32>() * ARENA_HEIGHT as f32) as i32,
+        })
+        .insert(Size::square(0.8));
+}
+
+fn snake_movement_input(
     keys: Res<ButtonInput<KeyCode>>,
-    mut head_positions: Query<&mut Position, With<SnakeHead>>,
+    mut snake_dirs: Query<&mut Direction, With<SnakeHead>>,
 ) {
-    for mut pos in &mut head_positions {
-        if keys.pressed(KeyCode::ArrowLeft) {
-            pos.x -= 1;
+    for mut dir in &mut snake_dirs {
+        let new_dir = if keys.pressed(KeyCode::ArrowLeft) {
+            Direction::Left
+        } else if keys.pressed(KeyCode::ArrowRight) {
+            Direction::Right
+        } else if keys.pressed(KeyCode::ArrowDown) {
+            Direction::Down
+        } else if keys.pressed(KeyCode::ArrowUp) {
+            Direction::Up
+        } else {
+            *dir
+        };
+
+        if new_dir != dir.opposite() {
+            *dir = new_dir;
         }
-        if keys.pressed(KeyCode::ArrowRight) {
-            pos.x += 1;
-        }
-        if keys.pressed(KeyCode::ArrowUp) {
-            pos.y += 1;
-        }
-        if keys.pressed(KeyCode::ArrowDown) {
-            pos.y -= 1;
+    }
+}
+
+fn snake_movement(mut heads: Query<(&mut Position, &Direction), With<SnakeHead>>) {
+    for (mut pos, &dir) in &mut heads {
+        match dir {
+            Direction::Left => pos.x -= 1,
+            Direction::Right => pos.x += 1,
+            Direction::Down => pos.y -= 1,
+            Direction::Up => pos.y += 1,
         }
 
-        // Wrap around logic
         if pos.x < 0 {
             pos.x = ARENA_WIDTH as i32 - 1;
         } else if pos.x >= ARENA_WIDTH as i32 {
@@ -126,7 +181,15 @@ fn main() {
         }))
         .insert_resource(ClearColor(Color::srgb(0.04, 0.04, 0.04)))
         .add_systems(Startup, (setup_camera, spawn_snake).chain())
-        .add_systems(Update, snake_movement)
+        .add_systems(
+            Update,
+            snake_movement.run_if(on_timer(Duration::from_secs_f32(0.15))),
+        )
+        .add_systems(
+            Update,
+            spawn_food.run_if(on_timer(Duration::from_secs_f32(1.))),
+        )
+        .add_systems(Update, snake_movement_input.before(snake_movement))
         .add_systems(PostUpdate, (position_translation, size_scaling))
         .run();
 }
