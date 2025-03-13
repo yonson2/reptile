@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{ops::DerefMut, time::Duration};
 
 use bevy::{
     prelude::*,
@@ -6,6 +6,8 @@ use bevy::{
     window::{PrimaryWindow, WindowResolution},
 };
 use rand::random;
+
+type Either<T, U> = Or<(With<T>, With<U>)>;
 
 // Constants
 const SNAKE_HEAD_COLOR: Color = Color::srgb(0.7, 0.7, 0.7);
@@ -16,7 +18,7 @@ const ARENA_WIDTH: u32 = 10;
 const ARENA_HEIGHT: u32 = 10;
 
 // Components
-#[derive(Component, PartialEq, Copy, Clone)]
+#[derive(Component, Resource, PartialEq, Copy, Clone)]
 enum Direction {
     Left,
     Up,
@@ -127,9 +129,9 @@ fn spawn_food(mut commands: Commands) {
 
 fn snake_movement_input(
     keys: Res<ButtonInput<KeyCode>>,
-    mut snake_dirs: Query<&mut Direction, With<SnakeHead>>,
+    mut input_direction: ResMut<Direction>,
+    snake_dir: Query<&Direction, With<SnakeHead>>,
 ) {
-    let mut dir = snake_dirs.single_mut();
     let new_dir = if keys.pressed(KeyCode::ArrowLeft) {
         Direction::Left
     } else if keys.pressed(KeyCode::ArrowRight) {
@@ -139,22 +141,23 @@ fn snake_movement_input(
     } else if keys.pressed(KeyCode::ArrowUp) {
         Direction::Up
     } else {
-        *dir
+        *input_direction
     };
 
-    if new_dir != dir.opposite() {
-        *dir = new_dir;
+    if new_dir != snake_dir.single().opposite() {
+        *input_direction = new_dir;
     }
 }
 
 fn snake_movement(
     segments: ResMut<SnakeSegments>,
-    heads: Query<(Entity, &Direction), With<SnakeHead>>,
+    input_direction: Res<Direction>,
+    mut heads: Query<(Entity, &mut Direction), With<SnakeHead>>,
     mut game_over_writer: EventWriter<GameOverEvent>,
     mut last_tail_position: ResMut<LastTailPosition>,
     mut positions: Query<&mut Position>,
 ) {
-    let (head_entity, head_direction) = heads.single();
+    let (head_entity, mut head_direction) = heads.single_mut();
 
     // Make a copy of the previous positions.
     let segment_positions = segments
@@ -166,6 +169,8 @@ fn snake_movement(
                 .expect("each body part should have a position")
         })
         .collect::<Vec<Position>>();
+
+    *head_direction = *input_direction;
 
     // Update head.
     let mut head_pos = positions
@@ -179,25 +184,16 @@ fn snake_movement(
         Direction::Up => head_pos.y += 1,
     }
 
-    // Uncomment this block and comment the next one to wrap-around the edges
-    // if head_pos.x < 0 {
-    //     head_pos.x = ARENA_WIDTH as i32 - 1;
-    // } else if head_pos.x >= ARENA_WIDTH as i32 {
-    //     head_pos.x = 0;
-    // }
-    //
-    // if head_pos.y < 0 {
-    //     head_pos.y = ARENA_HEIGHT as i32 - 1;
-    // } else if head_pos.y >= ARENA_HEIGHT as i32 {
-    //     head_pos.y = 0;
-    // }
+    if head_pos.x < 0 {
+        head_pos.x = ARENA_WIDTH as i32 - 1;
+    } else if head_pos.x >= ARENA_WIDTH as i32 {
+        head_pos.x = 0;
+    }
 
-    if head_pos.x < 0
-        || head_pos.y < 0
-        || head_pos.x as u32 >= ARENA_WIDTH
-        || head_pos.y as u32 >= ARENA_HEIGHT
-    {
-        game_over_writer.send(GameOverEvent);
+    if head_pos.y < 0 {
+        head_pos.y = ARENA_HEIGHT as i32 - 1;
+    } else if head_pos.y >= ARENA_HEIGHT as i32 {
+        head_pos.y = 0;
     }
 
     if segment_positions.contains(&head_pos) {
@@ -248,9 +244,10 @@ fn game_over(
     mut reader: EventReader<GameOverEvent>,
     segments_res: ResMut<SnakeSegments>,
     food: Query<Entity, With<Food>>,
-    segments: Query<Entity, With<SnakeBody>>,
+    segments: Query<Entity, Either<SnakeHead, SnakeBody>>,
 ) {
     if reader.read().next().is_some() {
+        // Despawn food, snake body segments, and the snake head
         for ent in food.iter().chain(segments.iter()) {
             commands.entity(ent).despawn();
         }
@@ -303,6 +300,7 @@ fn main() {
         .insert_resource(ClearColor(Color::srgb(0.04, 0.04, 0.04)))
         .insert_resource(SnakeSegments::default())
         .insert_resource(LastTailPosition::default())
+        .insert_resource(Direction::Up)
         .add_systems(Startup, (setup_camera, spawn_snake).chain())
         .add_systems(Update, snake_movement_input.before(snake_movement))
         .add_systems(
