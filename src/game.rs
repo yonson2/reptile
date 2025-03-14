@@ -8,7 +8,10 @@ use crate::assets::GameAssets;
 type Either<T, U> = Or<(With<T>, With<U>)>;
 
 // Constants
-const SNAKE_HEAD_COLOR: Color = Color::srgb(0.7, 0.7, 0.7);
+const SNAKE_HEAD_UP: usize = 48;
+const SNAKE_HEAD_DOWN: usize = 80;
+const SNAKE_HEAD_LEFT: usize = 64;
+const SNAKE_HEAD_RIGHT: usize = 96;
 const SNAKE_SEGMENT_COLOR: Color = Color::srgb(0.3, 0.3, 0.3);
 const FOOD_COLOR: Color = Color::srgb(1.0, 0.0, 1.0);
 
@@ -95,7 +98,7 @@ fn spawn_snake(
             game_assets.texture.clone(),
             TextureAtlas {
                 layout: game_assets.atlas_layout.clone(),
-                index: 64,
+                index: SNAKE_HEAD_UP,
             },
         ),))
         .insert(ImageAsset)
@@ -180,12 +183,12 @@ fn snake_movement_input(
 fn snake_movement(
     segments: ResMut<SnakeSegments>,
     input_direction: Res<Direction>,
-    mut heads: Query<(Entity, &mut Direction), With<SnakeHead>>,
+    mut heads: Query<(Entity, &mut Sprite, &mut Direction), With<SnakeHead>>,
     mut game_over_writer: EventWriter<GameOverEvent>,
     mut last_tail_position: ResMut<LastTailPosition>,
     mut positions: Query<&mut Position>,
 ) {
-    let (head_entity, mut head_direction) = heads.single_mut();
+    let (head_entity, mut head_sprite, mut head_direction) = heads.single_mut();
 
     // Make a copy of the previous positions.
     let segment_positions = segments
@@ -206,10 +209,22 @@ fn snake_movement(
         .expect("snake head should exist");
 
     match *head_direction {
-        Direction::Left => head_pos.x -= 1,
-        Direction::Right => head_pos.x += 1,
-        Direction::Down => head_pos.y -= 1,
-        Direction::Up => head_pos.y += 1,
+        Direction::Left => {
+            head_sprite.texture_atlas.as_mut().unwrap().index = SNAKE_HEAD_LEFT;
+            head_pos.x -= 1;
+        }
+        Direction::Right => {
+            head_sprite.texture_atlas.as_mut().unwrap().index = SNAKE_HEAD_RIGHT;
+            head_pos.x += 1;
+        }
+        Direction::Down => {
+            head_sprite.texture_atlas.as_mut().unwrap().index = SNAKE_HEAD_DOWN;
+            head_pos.y -= 1;
+        }
+        Direction::Up => {
+            head_sprite.texture_atlas.as_mut().unwrap().index = SNAKE_HEAD_UP;
+            head_pos.y += 1;
+        }
     }
 
     if head_pos.x < 0 {
