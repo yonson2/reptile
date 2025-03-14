@@ -3,6 +3,8 @@ use std::time::Duration;
 use bevy::{prelude::*, time::common_conditions::on_timer, window::PrimaryWindow};
 use rand::random;
 
+use crate::assets::GameAssets;
+
 type Either<T, U> = Or<(With<T>, With<U>)>;
 
 // Constants
@@ -62,6 +64,9 @@ impl Size {
     }
 }
 
+#[derive(Component)]
+struct ImageAsset;
+
 // Resources
 #[derive(Default, Resource)]
 struct SnakeSegments(Vec<Entity>);
@@ -83,12 +88,17 @@ fn spawn_snake(
     mut commands: Commands,
     mut segments: ResMut<SnakeSegments>,
     mut food_writer: EventWriter<FoodEvent>,
+    game_assets: Res<GameAssets>,
 ) {
     *segments = SnakeSegments(vec![commands
-        .spawn(Sprite {
-            color: SNAKE_HEAD_COLOR,
-            ..default()
-        })
+        .spawn((Sprite::from_atlas_image(
+            game_assets.texture.clone(),
+            TextureAtlas {
+                layout: game_assets.atlas_layout.clone(),
+                index: 64,
+            },
+        ),))
+        .insert(ImageAsset)
         .insert(SnakeHead)
         .insert(Direction::Up)
         .insert(Position { x: 5, y: 5 })
@@ -269,27 +279,45 @@ fn game_over(
     segments_res: ResMut<SnakeSegments>,
     food: Query<Entity, With<Food>>,
     segments: Query<Entity, Either<SnakeHead, SnakeBody>>,
+    game_assets: Res<GameAssets>,
 ) {
     if reader.read().next().is_some() {
         // Despawn food, snake body segments, and the snake head
         for ent in food.iter().chain(segments.iter()) {
             commands.entity(ent).despawn();
         }
-        spawn_snake(commands, segments_res, food_writer);
+        spawn_snake(commands, segments_res, food_writer, game_assets);
     }
 }
 
 fn size_scaling(
     q_window: Query<&Window, With<PrimaryWindow>>,
-    mut q_scale: Query<(&Size, &mut Transform)>,
+    mut q_scale: Query<(&Size, &mut Transform, Option<&ImageAsset>)>,
 ) {
     let window = q_window.single();
-    for (sprite_size, mut transform) in &mut q_scale {
-        transform.scale = Vec3::new(
-            sprite_size.width / ARENA_WIDTH as f32 * window.width(),
-            sprite_size.height / ARENA_HEIGHT as f32 * window.height(),
-            1.0,
-        )
+    let tile_width = window.width() / ARENA_WIDTH as f32;
+    let tile_height = window.height() / ARENA_HEIGHT as f32;
+
+    for (sprite_size, mut transform, is_image) in &mut q_scale {
+        if is_image.is_some() {
+            // For image assets (from texture atlas), we need to adjust the scale
+            // to fit within a single grid cell
+            // The sprite is 16x16 pixels, so we scale it to fit the grid cell
+            let sprite_pixel_size = 16.0; // Size of one sprite in the atlas
+
+            transform.scale = Vec3::new(
+                tile_width * sprite_size.width / sprite_pixel_size,
+                tile_height * sprite_size.height / sprite_pixel_size,
+                1.0,
+            );
+        } else {
+            // For regular colored sprites
+            transform.scale = Vec3::new(
+                sprite_size.width / ARENA_WIDTH as f32 * window.width(),
+                sprite_size.height / ARENA_HEIGHT as f32 * window.height(),
+                1.0,
+            );
+        }
     }
 }
 
