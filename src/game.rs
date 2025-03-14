@@ -26,7 +26,6 @@ const SNAKE_TAIL_DOWN: usize = 40;
 const SNAKE_TAIL_LEFT: usize = 39;
 const SNAKE_TAIL_RIGHT: usize = 41;
 
-const SNAKE_SEGMENT_COLOR: Color = Color::srgb(0.3, 0.3, 0.3);
 const FOOD_COLOR: Color = Color::srgb(1.0, 0.0, 1.0);
 
 const ARENA_WIDTH: u32 = 11;
@@ -107,20 +106,28 @@ fn spawn_snake(
     mut food_writer: EventWriter<FoodEvent>,
     game_assets: Res<GameAssets>,
 ) {
-    *segments = SnakeSegments(vec![commands
-        .spawn(Sprite::from_atlas_image(
-            game_assets.texture.clone(),
-            TextureAtlas {
-                layout: game_assets.atlas_layout.clone(),
-                index: SNAKE_HEAD_UP,
-            },
-        ))
-        .insert(ImageAsset)
-        .insert(SnakeHead)
-        .insert(Direction::Up)
-        .insert(Position { x: 5, y: 5 })
-        .insert(Size::square(1.))
-        .id()]);
+    *segments = SnakeSegments(vec![
+        commands
+            .spawn(Sprite::from_atlas_image(
+                game_assets.texture.clone(),
+                TextureAtlas {
+                    layout: game_assets.atlas_layout.clone(),
+                    index: SNAKE_HEAD_UP,
+                },
+            ))
+            .insert(ImageAsset)
+            .insert(SnakeHead)
+            .insert(Direction::Up)
+            .insert(Position { x: 5, y: 5 })
+            .insert(Size::square(1.))
+            .id(),
+        spawn_snake_segment(
+            commands,
+            Position { x: 5, y: 4 },
+            game_assets,
+            SNAKE_TAIL_UP,
+        ),
+    ]);
 
     food_writer.send(FoodEvent);
 }
