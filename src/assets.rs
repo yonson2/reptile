@@ -7,6 +7,9 @@ pub struct GameAssets {
     pub atlas_layout: Handle<TextureAtlasLayout>,
 }
 
+#[derive(Resource)]
+pub struct AudioAssets(pub Handle<AudioSource>);
+
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(PreStartup, load_assets);
 }
@@ -17,7 +20,8 @@ fn load_assets(
     mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     // Load the snake texture
-    let texture = asset_server.load("snake.png");
+    let texture = asset_server.load("sprites/snake.png");
+    let audio = asset_server.load("sounds/crunchybite.ogg");
 
     // Create a texture atlas layout for the snake
     // The index calculation is the key part:
@@ -32,6 +36,8 @@ fn load_assets(
         texture,
         atlas_layout,
     });
+
+    commands.insert_resource(AudioAssets(audio));
 
     // Log that assets were loaded successfully
     info!("Game assets loaded successfully");

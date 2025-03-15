@@ -1,13 +1,17 @@
 use std::time::Duration;
 
-use bevy::{prelude::*, time::common_conditions::on_timer, window::PrimaryWindow};
+use bevy::{
+    audio::PlaybackMode, ecs::system::SystemParam, prelude::*, time::common_conditions::on_timer,
+    window::PrimaryWindow,
+};
 use rand::random;
 
-use crate::assets::GameAssets;
+use crate::assets::{AudioAssets, GameAssets};
 
 type Either<T, U> = Or<(With<T>, With<U>)>;
 
 // Constants
+//opens mount at +1/2/3/4 (bigger each) for each direciton
 const SNAKE_HEAD_UP: usize = 48;
 const SNAKE_HEAD_DOWN: usize = 80;
 const SNAKE_HEAD_LEFT: usize = 64;
@@ -60,7 +64,7 @@ struct SnakeBody;
 #[derive(Component)]
 struct Food;
 
-#[derive(Component, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Component, Clone, Copy, PartialEq, Eq)]
 struct Position {
     x: i32,
     y: i32,
@@ -167,9 +171,10 @@ fn spawn_food(mut commands: Commands, position: Position) {
 fn spawn_food_empty_position(
     commands: Commands,
     positions: Query<&Position>,
+    food: Query<&Position, With<Food>>,
     mut food_reader: EventReader<FoodEvent>,
 ) {
-    if food_reader.read().next().is_some() {
+    if food_reader.read().next().is_some() && food.iter().count() == 0 {
         let mut new_food_position;
         'outer: loop {
             new_food_position = Position {
@@ -213,10 +218,11 @@ fn snake_movement_input(
 fn snake_repaint(
     segments: Res<SnakeSegments>,
     positions: Query<&Position, Either<SnakeHead, SnakeBody>>,
+    foods: Query<&Position, With<Food>>,
     mut sprites: Query<&mut Sprite, Either<SnakeHead, SnakeBody>>,
     head_direction: Query<&Direction, With<SnakeHead>>,
 ) {
-    let head_direction = *head_direction.single();
+    let head_dir = *head_direction.single();
     let segment_positions = segments
         .0
         .iter()
@@ -252,13 +258,18 @@ fn snake_repaint(
         let mut sprite = sprites.get_mut(entity).unwrap();
         // Head
         if i == 0 {
-            let index = match head_direction {
-                Direction::Down => SNAKE_HEAD_DOWN,
-                Direction::Left => SNAKE_HEAD_LEFT,
-                Direction::Up => SNAKE_HEAD_UP,
-                Direction::Right => SNAKE_HEAD_RIGHT,
-            };
-            sprite.texture_atlas.as_mut().unwrap().index = index;
+            // Now, for each food, see if we are close to the head.
+            for &food_pos in foods.iter() {
+                let head_pos = *segment_positions.get(i).expect("a head");
+
+                let index = match head_dir {
+                    Direction::Down => SNAKE_HEAD_DOWN + open_mouth(food_pos, head_pos, head_dir),
+                    Direction::Up => SNAKE_HEAD_UP + open_mouth(food_pos, head_pos, head_dir),
+                    Direction::Left => SNAKE_HEAD_LEFT + open_mouth(food_pos, head_pos, head_dir),
+                    Direction::Right => SNAKE_HEAD_RIGHT + open_mouth(food_pos, head_pos, head_dir),
+                };
+                sprite.texture_atlas.as_mut().unwrap().index = index;
+            }
         }
         // Tail
         else if i == segments.0.len() - 1 {
@@ -396,47 +407,58 @@ fn snake_eating(
     }
 }
 
-fn snake_growth(
-    commands: Commands,
-    last_tail_position: Res<LastTailPosition>,
-    head: Query<&Direction, With<SnakeHead>>,
-    mut segments: ResMut<SnakeSegments>,
-    mut growth_reader: EventReader<GrowthEvent>,
-    mut food_writer: EventWriter<FoodEvent>,
-    game_assets: Res<GameAssets>,
-) {
-    if growth_reader.read().next().is_some() {
-        let snake_direction = *head.single();
+// Group related resources for snake growth
+#[derive(SystemParam)]
+struct SnakeGrowthParams<'w, 's> {
+    last_tail_position: Res<'w, LastTailPosition>,
+    head: Query<'w, 's, &'static Direction, With<SnakeHead>>,
+    segments: ResMut<'w, SnakeSegments>,
+    growth_reader: EventReader<'w, 's, GrowthEvent>,
+    food_writer: EventWriter<'w, FoodEvent>,
+    game_assets: Res<'w, GameAssets>,
+    audio: Res<'w, AudioAssets>,
+}
+
+fn snake_growth(mut commands: Commands, mut params: SnakeGrowthParams) {
+    if params.growth_reader.read().next().is_some() {
+        commands.spawn((
+            AudioPlayer(params.audio.0.clone()),
+            PlaybackSettings {
+                mode: PlaybackMode::Despawn,
+                paused: false,
+                ..default()
+            },
+        ));
+        let snake_direction = *params.head.single();
         let index = match snake_direction {
             Direction::Up => SNAKE_TAIL_UP,
             Direction::Down => SNAKE_TAIL_DOWN,
             Direction::Left => SNAKE_TAIL_LEFT,
             Direction::Right => SNAKE_TAIL_RIGHT,
         };
-        segments.0.push(spawn_snake_segment(
+        params.segments.0.push(spawn_snake_segment(
             commands,
-            last_tail_position
+            params
+                .last_tail_position
                 .0
                 .expect("last tail should be set when growing"),
-            game_assets,
+            params.game_assets,
             index,
         ));
-        food_writer.send(FoodEvent);
+        params.food_writer.send(FoodEvent);
     }
 }
 
 fn game_over(
     mut commands: Commands,
     mut reader: EventReader<GameOverEvent>,
-    food_writer: EventWriter<FoodEvent>,
     segments_res: ResMut<SnakeSegments>,
-    food: Query<Entity, With<Food>>,
-    segments: Query<Entity, Either<SnakeHead, SnakeBody>>,
+    food_writer: EventWriter<FoodEvent>,
     game_assets: Res<GameAssets>,
+    ents: Query<Entity, With<Size>>,
 ) {
     if reader.read().next().is_some() {
-        // Despawn food, snake body segments, and the snake head
-        for ent in food.iter().chain(segments.iter()) {
+        for ent in ents.iter() {
             commands.entity(ent).despawn();
         }
         spawn_snake(commands, segments_res, food_writer, game_assets);
@@ -485,6 +507,60 @@ fn position_translation(
             convert(pos.y as f32, window.height(), ARENA_HEIGHT as f32),
             0.0,
         );
+    }
+}
+
+// Helper function to calculate mouth openness for all directions
+fn open_mouth(food: Position, head: Position, direction: Direction) -> usize {
+    match direction {
+        Direction::Up => {
+            if food.x == head.x && food.y > head.y {
+                let distance = food.y - head.y;
+                if (0..=4).contains(&distance) {
+                    5 - distance as usize
+                } else {
+                    0
+                }
+            } else {
+                0
+            }
+        }
+        Direction::Down => {
+            if food.x == head.x && food.y < head.y {
+                let distance = head.y - food.y;
+                if (0..=4).contains(&distance) {
+                    5 - distance as usize
+                } else {
+                    0
+                }
+            } else {
+                0
+            }
+        }
+        Direction::Left => {
+            if food.y == head.y && food.x < head.x {
+                let distance = head.x - food.x;
+                if (0..=4).contains(&distance) {
+                    5 - distance as usize
+                } else {
+                    0
+                }
+            } else {
+                0
+            }
+        }
+        Direction::Right => {
+            if food.y == head.y && food.x > head.x {
+                let distance = food.x - head.x;
+                if (0..=4).contains(&distance) {
+                    5 - distance as usize
+                } else {
+                    0
+                }
+            } else {
+                0
+            }
+        }
     }
 }
 
