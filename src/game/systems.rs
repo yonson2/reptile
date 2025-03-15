@@ -5,7 +5,7 @@ use crate::game::resources::*;
 
 use bevy::prelude::*;
 use bevy::{audio::PlaybackMode, ecs::system::SystemParam, window::PrimaryWindow};
-use rand::random;
+use fastrand;
 
 use crate::assets::{AudioAssets, GameAssets};
 
@@ -85,8 +85,8 @@ pub(super) fn spawn_food_empty_position(
         let mut new_food_position;
         'outer: loop {
             new_food_position = Position {
-                x: (random::<f32>() * ARENA_WIDTH as f32) as i32,
-                y: (random::<f32>() * ARENA_HEIGHT as f32) as i32,
+                x: (fastrand::f32() * ARENA_WIDTH as f32) as i32,
+                y: (fastrand::f32() * ARENA_HEIGHT as f32) as i32,
             };
 
             for &pos in &positions {
@@ -170,10 +170,10 @@ pub(super) fn snake_repaint(
                 let head_pos = *segment_positions.get(i).expect("a head");
 
                 let index = match head_dir {
-                    Direction::Down => SNAKE_HEAD_DOWN + open_mouth(food_pos, head_pos, head_dir),
-                    Direction::Up => SNAKE_HEAD_UP + open_mouth(food_pos, head_pos, head_dir),
-                    Direction::Left => SNAKE_HEAD_LEFT + open_mouth(food_pos, head_pos, head_dir),
-                    Direction::Right => SNAKE_HEAD_RIGHT + open_mouth(food_pos, head_pos, head_dir),
+                    Direction::Down => SNAKE_HEAD_DOWN + open_mouth(food_pos, head_pos),
+                    Direction::Up => SNAKE_HEAD_UP + open_mouth(food_pos, head_pos),
+                    Direction::Left => SNAKE_HEAD_LEFT + open_mouth(food_pos, head_pos),
+                    Direction::Right => SNAKE_HEAD_RIGHT + open_mouth(food_pos, head_pos),
                 };
                 sprite.texture_atlas.as_mut().unwrap().index = index;
             }
@@ -417,56 +417,11 @@ pub(super) fn position_translation(
     }
 }
 
-// Helper function to calculate mouth openness for all directions
-fn open_mouth(food: Position, head: Position, direction: Direction) -> usize {
-    match direction {
-        Direction::Up => {
-            if food.x == head.x && food.y > head.y {
-                let distance = food.y - head.y;
-                if (0..=4).contains(&distance) {
-                    5 - distance as usize
-                } else {
-                    0
-                }
-            } else {
-                0
-            }
-        }
-        Direction::Down => {
-            if food.x == head.x && food.y < head.y {
-                let distance = head.y - food.y;
-                if (0..=4).contains(&distance) {
-                    5 - distance as usize
-                } else {
-                    0
-                }
-            } else {
-                0
-            }
-        }
-        Direction::Left => {
-            if food.y == head.y && food.x < head.x {
-                let distance = head.x - food.x;
-                if (0..=4).contains(&distance) {
-                    5 - distance as usize
-                } else {
-                    0
-                }
-            } else {
-                0
-            }
-        }
-        Direction::Right => {
-            if food.y == head.y && food.x > head.x {
-                let distance = food.x - head.x;
-                if (0..=4).contains(&distance) {
-                    5 - distance as usize
-                } else {
-                    0
-                }
-            } else {
-                0
-            }
-        }
+fn open_mouth(food: Position, head: Position) -> usize {
+    let manhattan_distance = (food.x - head.x).abs() + (food.y - head.y).abs();
+    if manhattan_distance <= 4 {
+        5 - manhattan_distance as usize
+    } else {
+        0
     }
 }
