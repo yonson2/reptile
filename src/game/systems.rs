@@ -1,110 +1,17 @@
-use std::time::Duration;
+use crate::game::components::*;
+use crate::game::constants::*;
+use crate::game::events::*;
+use crate::game::resources::*;
 
-use bevy::{
-    audio::PlaybackMode, ecs::system::SystemParam, prelude::*, time::common_conditions::on_timer,
-    window::PrimaryWindow,
-};
+use bevy::prelude::*;
+use bevy::{audio::PlaybackMode, ecs::system::SystemParam, window::PrimaryWindow};
 use rand::random;
 
 use crate::assets::{AudioAssets, GameAssets};
 
-type Either<T, U> = Or<(With<T>, With<U>)>;
+pub(super) type Either<T, U> = Or<(With<T>, With<U>)>;
 
-// Constants
-//opens mount at +1/2/3/4 (bigger each) for each direciton
-const SNAKE_HEAD_UP: usize = 48;
-const SNAKE_HEAD_DOWN: usize = 80;
-const SNAKE_HEAD_LEFT: usize = 64;
-const SNAKE_HEAD_RIGHT: usize = 96;
-
-const SNAKE_BODY_VERTICAL: usize = 32;
-const SNAKE_BODY_HORIZONTAL: usize = 33;
-
-const SNAKE_CORNER_BOTTOM_RIGHT: usize = 34;
-const SNAKE_CORNER_BOTTOM_LEFT: usize = 35;
-const SNAKE_CORNER_TOP_RIGHT: usize = 36;
-const SNAKE_CORNER_TOP_LEFT: usize = 37;
-
-const SNAKE_TAIL_UP: usize = 38;
-const SNAKE_TAIL_DOWN: usize = 40;
-const SNAKE_TAIL_LEFT: usize = 39;
-const SNAKE_TAIL_RIGHT: usize = 41;
-
-const FOOD_COLOR: Color = Color::srgb(1.0, 0.0, 1.0);
-
-const ARENA_WIDTH: u32 = 11;
-const ARENA_HEIGHT: u32 = 11;
-
-// Components
-#[derive(Component, Resource, PartialEq, Copy, Clone)]
-enum Direction {
-    Left,
-    Up,
-    Right,
-    Down,
-}
-
-impl Direction {
-    fn opposite(self) -> Self {
-        match self {
-            Self::Left => Self::Right,
-            Self::Right => Self::Left,
-            Self::Up => Self::Down,
-            Self::Down => Self::Up,
-        }
-    }
-}
-
-#[derive(Component)]
-struct SnakeHead;
-
-#[derive(Component)]
-struct SnakeBody;
-
-#[derive(Component)]
-struct Food;
-
-#[derive(Debug, Component, Clone, Copy, PartialEq, Eq)]
-struct Position {
-    x: i32,
-    y: i32,
-}
-
-#[derive(Component)]
-struct Size {
-    width: f32,
-    height: f32,
-}
-impl Size {
-    pub fn square(x: f32) -> Self {
-        Self {
-            width: x,
-            height: x,
-        }
-    }
-}
-
-#[derive(Component)]
-struct ImageAsset;
-
-// Resources
-#[derive(Default, Resource)]
-struct SnakeSegments(Vec<Entity>);
-
-#[derive(Default, Resource)]
-struct LastTailPosition(Option<Position>);
-
-// Events
-#[derive(Event)]
-struct GrowthEvent;
-
-#[derive(Event)]
-struct GameOverEvent;
-
-#[derive(Event)]
-struct FoodEvent;
-
-fn spawn_snake(
+pub(super) fn spawn_snake(
     mut commands: Commands,
     mut segments: ResMut<SnakeSegments>,
     mut food_writer: EventWriter<FoodEvent>,
@@ -136,7 +43,7 @@ fn spawn_snake(
     food_writer.send(FoodEvent);
 }
 
-fn spawn_snake_segment(
+pub(super) fn spawn_snake_segment(
     mut commands: Commands,
     position: Position,
     game_assets: Res<GameAssets>,
@@ -157,7 +64,7 @@ fn spawn_snake_segment(
         .id()
 }
 
-fn spawn_food(mut commands: Commands, position: Position) {
+pub(super) fn spawn_food(mut commands: Commands, position: Position) {
     commands
         .spawn((Sprite {
             color: FOOD_COLOR,
@@ -168,7 +75,7 @@ fn spawn_food(mut commands: Commands, position: Position) {
         .insert(Size::square(0.8));
 }
 
-fn spawn_food_empty_position(
+pub(super) fn spawn_food_empty_position(
     commands: Commands,
     positions: Query<&Position>,
     food: Query<&Position, With<Food>>,
@@ -193,7 +100,7 @@ fn spawn_food_empty_position(
     }
 }
 
-fn snake_movement_input(
+pub(super) fn snake_movement_input(
     keys: Res<ButtonInput<KeyCode>>,
     mut input_direction: ResMut<Direction>,
     snake_dir: Query<&Direction, With<SnakeHead>>,
@@ -215,7 +122,7 @@ fn snake_movement_input(
     }
 }
 
-fn snake_repaint(
+pub(super) fn snake_repaint(
     segments: Res<SnakeSegments>,
     positions: Query<&Position, Either<SnakeHead, SnakeBody>>,
     foods: Query<&Position, With<Food>>,
@@ -322,7 +229,7 @@ fn snake_repaint(
     }
 }
 
-fn snake_movement(
+pub(super) fn snake_movement(
     segments: Res<SnakeSegments>,
     input_direction: Res<Direction>,
     mut heads: Query<(Entity, &mut Direction), With<SnakeHead>>,
@@ -392,7 +299,7 @@ fn snake_movement(
     *last_tail_position = LastTailPosition(segment_positions.last().copied());
 }
 
-fn snake_eating(
+pub(super) fn snake_eating(
     mut commands: Commands,
     mut growth_writer: EventWriter<GrowthEvent>,
     food_pos: Query<(Entity, &Position), With<Food>>,
@@ -409,7 +316,7 @@ fn snake_eating(
 
 // Group related resources for snake growth
 #[derive(SystemParam)]
-struct SnakeGrowthParams<'w, 's> {
+pub(super) struct SnakeGrowthParams<'w, 's> {
     last_tail_position: Res<'w, LastTailPosition>,
     head: Query<'w, 's, &'static Direction, With<SnakeHead>>,
     segments: ResMut<'w, SnakeSegments>,
@@ -419,7 +326,7 @@ struct SnakeGrowthParams<'w, 's> {
     audio: Res<'w, AudioAssets>,
 }
 
-fn snake_growth(mut commands: Commands, mut params: SnakeGrowthParams) {
+pub(super) fn snake_growth(mut commands: Commands, mut params: SnakeGrowthParams) {
     if params.growth_reader.read().next().is_some() {
         commands.spawn((
             AudioPlayer(params.audio.0.clone()),
@@ -449,7 +356,7 @@ fn snake_growth(mut commands: Commands, mut params: SnakeGrowthParams) {
     }
 }
 
-fn game_over(
+pub(super) fn game_over(
     mut commands: Commands,
     mut reader: EventReader<GameOverEvent>,
     segments_res: ResMut<SnakeSegments>,
@@ -465,7 +372,7 @@ fn game_over(
     }
 }
 
-fn size_scaling(
+pub(super) fn size_scaling(
     q_window: Query<&Window, With<PrimaryWindow>>,
     mut q_scale: Query<(&Size, &mut Transform, Option<&ImageAsset>)>,
 ) {
@@ -492,7 +399,7 @@ fn size_scaling(
     }
 }
 
-fn position_translation(
+pub(super) fn position_translation(
     q_window: Query<&Window, With<PrimaryWindow>>,
     mut q: Query<(&Position, &mut Transform)>,
 ) {
@@ -562,26 +469,4 @@ fn open_mouth(food: Position, head: Position, direction: Direction) -> usize {
             }
         }
     }
-}
-
-pub(super) fn plugin(app: &mut App) {
-    app.insert_resource(ClearColor(Color::srgb(0.04, 0.04, 0.04)))
-        .insert_resource(SnakeSegments::default())
-        .insert_resource(LastTailPosition::default())
-        .insert_resource(Direction::Up)
-        .add_systems(Startup, spawn_snake)
-        .add_systems(Update, snake_movement_input.before(snake_movement))
-        .add_systems(
-            Update,
-            snake_movement.run_if(on_timer(Duration::from_secs_f32(0.15))),
-        )
-        .add_systems(Update, snake_eating.after(snake_movement))
-        .add_systems(Update, snake_growth.after(snake_eating))
-        .add_systems(Update, snake_repaint.after(snake_growth))
-        .add_systems(Update, game_over.after(snake_movement))
-        .add_systems(Update, spawn_food_empty_position)
-        .add_systems(PostUpdate, (position_translation, size_scaling))
-        .add_event::<FoodEvent>()
-        .add_event::<GrowthEvent>()
-        .add_event::<GameOverEvent>();
 }
