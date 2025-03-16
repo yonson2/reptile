@@ -26,5 +26,7 @@ pub(super) const FOOD_YELLOW: usize = 338;
 
 // pub(super) const FOOD_COLOR: Color = Color::srgb(1.0, 0.0, 1.0);
 
-pub(super) const ARENA_WIDTH: u32 = 7;
+//TODO: this is closely related to the window resolution if we don't plan on resizing
+// think about this.
+pub(super) const ARENA_WIDTH: u32 = 8;
 pub(super) const ARENA_HEIGHT: u32 = 16;

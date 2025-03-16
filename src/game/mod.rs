@@ -1,6 +1,7 @@
 mod components;
 mod constants;
 mod events;
+mod menu;
 mod resources;
 mod systems;
 
@@ -23,10 +24,12 @@ pub(super) fn plugin(app: &mut App) {
         .insert_resource(SnakeSegments::default())
         .insert_resource(LastTailPosition::default())
         .insert_resource(Direction::Up)
+        .add_systems(OnEnter(AppState::Menu), menu::setup_menu)
+        .add_systems(OnExit(AppState::Menu), menu::cleanup_menu)
+        .add_systems(Update, menu::menu.run_if(in_state(AppState::Menu)))
+        // .add_systems(Update, menu_input.run_if(in_state(AppState::Menu)))
         .add_systems(OnEnter(AppState::InGame), setup_game)
         .add_systems(OnExit(AppState::InGame), cleanup_game)
-        // .add_systems(OnExit(AppState::Menu), cleanup_menu)
-        .add_systems(Update, menu_input.run_if(in_state(AppState::Menu)))
         .add_systems(
             Update,
             (

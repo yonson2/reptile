@@ -7,7 +7,7 @@ use bevy::prelude::*;
 use bevy::{audio::PlaybackMode, ecs::system::SystemParam, window::PrimaryWindow};
 use world::AppState;
 
-use crate::assets::{AudioAssets, GameAssets};
+use crate::assets::{AudioAsset, GameAsset};
 
 pub mod world;
 
@@ -17,7 +17,7 @@ pub(super) fn setup_game(
     mut commands: Commands,
     mut segments: ResMut<SnakeSegments>,
     mut food_writer: EventWriter<FoodEvent>,
-    game_assets: Res<GameAssets>,
+    game_assets: Res<GameAsset>,
 ) {
     *segments = SnakeSegments(vec![
         commands
@@ -48,7 +48,7 @@ pub(super) fn setup_game(
 pub(super) fn spawn_snake_segment(
     mut commands: Commands,
     position: Position,
-    game_assets: Res<GameAssets>,
+    game_assets: Res<GameAsset>,
     sprite_index: usize,
 ) -> Entity {
     commands
@@ -66,7 +66,7 @@ pub(super) fn spawn_snake_segment(
         .id()
 }
 
-pub(super) fn spawn_food(mut commands: Commands, position: Position, game_assets: Res<GameAssets>) {
+pub(super) fn spawn_food(mut commands: Commands, position: Position, game_assets: Res<GameAsset>) {
     // Randomly choose between the three food colors
     let food_index = match fastrand::u8(0..3) {
         0 => FOOD_RED,
@@ -93,7 +93,7 @@ pub(super) fn spawn_food_empty_position(
     positions: Query<&Position>,
     food: Query<&Position, With<Food>>,
     mut food_reader: EventReader<FoodEvent>,
-    game_assets: Res<GameAssets>,
+    game_assets: Res<GameAsset>,
 ) {
     if food_reader.read().next().is_some() && food.iter().count() == 0 {
         let mut new_food_position;
@@ -346,8 +346,8 @@ pub(super) struct SnakeGrowthParams<'w, 's> {
     segments: ResMut<'w, SnakeSegments>,
     growth_reader: EventReader<'w, 's, GrowthEvent>,
     food_writer: EventWriter<'w, FoodEvent>,
-    game_assets: Res<'w, GameAssets>,
-    audio: Res<'w, AudioAssets>,
+    game_assets: Res<'w, GameAsset>,
+    audio: Res<'w, AudioAsset>,
 }
 
 pub(super) fn snake_growth(mut commands: Commands, mut params: SnakeGrowthParams) {

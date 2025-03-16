@@ -5,7 +5,7 @@ pub(super) fn plugin(app: &mut App) {
         DefaultPlugins
             .set(WindowPlugin {
                 primary_window: Some(Window {
-                    resolution: WindowResolution::new(700., 1600.).with_scale_factor_override(1.0),
+                    resolution: WindowResolution::new(800., 1600.).with_scale_factor_override(1.0),
                     resizable: false,
                     ..default()
                 }),

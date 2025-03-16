@@ -1,14 +1,16 @@
 use bevy::prelude::*;
 
-// Resource to store our game assets
 #[derive(Resource)]
-pub struct GameAssets {
+pub struct GameAsset {
     pub texture: Handle<Image>,
     pub atlas_layout: Handle<TextureAtlasLayout>,
 }
 
 #[derive(Resource)]
-pub struct AudioAssets(pub Handle<AudioSource>);
+pub struct AudioAsset(pub Handle<AudioSource>);
+
+#[derive(Resource)]
+pub struct TextAsset(pub Handle<Font>);
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(PreStartup, load_assets);
@@ -22,6 +24,7 @@ fn load_assets(
     // Load the snake texture
     let texture = asset_server.load("sprites/snake.png");
     let audio = asset_server.load("sounds/crunchybite.ogg");
+    let font = asset_server.load("fonts/fibberish.ttf");
 
     // Create a texture atlas layout for the snake
     // The index calculation is the key part:
@@ -32,12 +35,13 @@ fn load_assets(
     let atlas_layout = texture_atlas_layouts.add(layout);
 
     // Store the assets in a resource so they can be accessed from other systems
-    commands.insert_resource(GameAssets {
+    commands.insert_resource(GameAsset {
         texture,
         atlas_layout,
     });
 
-    commands.insert_resource(AudioAssets(audio));
+    commands.insert_resource(AudioAsset(audio));
+    commands.insert_resource(TextAsset(font));
 
     // Log that assets were loaded successfully
     info!("Game assets loaded successfully");
