@@ -24,7 +24,7 @@ pub(super) const FOOD_RED: usize = 336;
 pub(super) const FOOD_GREEN: usize = 337;
 pub(super) const FOOD_YELLOW: usize = 338;
 
-pub(super) const FOOD_COLOR: Color = Color::srgb(1.0, 0.0, 1.0);
+// pub(super) const FOOD_COLOR: Color = Color::srgb(1.0, 0.0, 1.0);
 
-pub(super) const ARENA_WIDTH: u32 = 11;
-pub(super) const ARENA_HEIGHT: u32 = 11;
+pub(super) const ARENA_WIDTH: u32 = 7;
+pub(super) const ARENA_HEIGHT: u32 = 16;

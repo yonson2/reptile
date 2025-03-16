@@ -20,5 +20,12 @@ pub enum MyPausedState {
     Paused,
 }
 
+#[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum AppState {
+    InGame,
+    #[default]
+    Menu,
+}
+
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct WorldSet;

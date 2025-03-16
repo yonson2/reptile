@@ -4,7 +4,4 @@ use bevy::prelude::Event;
 pub(super) struct GrowthEvent;
 
 #[derive(Event)]
-pub(super) struct GameOverEvent;
-
-#[derive(Event)]
 pub(super) struct FoodEvent;

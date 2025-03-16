@@ -5,6 +5,7 @@ use crate::game::resources::*;
 
 use bevy::prelude::*;
 use bevy::{audio::PlaybackMode, ecs::system::SystemParam, window::PrimaryWindow};
+use world::AppState;
 
 use crate::assets::{AudioAssets, GameAssets};
 
@@ -12,7 +13,7 @@ pub mod world;
 
 pub(super) type Either<T, U> = Or<(With<T>, With<U>)>;
 
-pub(super) fn spawn_snake(
+pub(super) fn setup_game(
     mut commands: Commands,
     mut segments: ResMut<SnakeSegments>,
     mut food_writer: EventWriter<FoodEvent>,
@@ -110,6 +111,15 @@ pub(super) fn spawn_food_empty_position(
             break;
         }
         spawn_food(commands, new_food_position, game_assets);
+    }
+}
+
+pub(super) fn menu_input(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut next_state: ResMut<NextState<AppState>>,
+) {
+    if keys.get_just_pressed().next().is_some() {
+        next_state.set(AppState::InGame);
     }
 }
 
@@ -246,7 +256,7 @@ pub(super) fn snake_movement(
     segments: Res<SnakeSegments>,
     input_direction: Res<Direction>,
     mut heads: Query<(Entity, &mut Direction), With<SnakeHead>>,
-    mut game_over_writer: EventWriter<GameOverEvent>,
+    mut next_state: ResMut<NextState<AppState>>,
     mut last_tail_position: ResMut<LastTailPosition>,
     mut positions: Query<&mut Position>,
 ) {
@@ -298,7 +308,8 @@ pub(super) fn snake_movement(
     }
 
     if segment_positions.contains(&head_pos) {
-        game_over_writer.send(GameOverEvent);
+        next_state.set(AppState::Menu);
+        return;
     }
 
     // Make rest of body follow its parent.
@@ -369,19 +380,9 @@ pub(super) fn snake_growth(mut commands: Commands, mut params: SnakeGrowthParams
     }
 }
 
-pub(super) fn game_over(
-    mut commands: Commands,
-    mut reader: EventReader<GameOverEvent>,
-    segments_res: ResMut<SnakeSegments>,
-    food_writer: EventWriter<FoodEvent>,
-    game_assets: Res<GameAssets>,
-    ents: Query<Entity, With<Size>>,
-) {
-    if reader.read().next().is_some() {
-        for ent in ents.iter() {
-            commands.entity(ent).despawn();
-        }
-        spawn_snake(commands, segments_res, food_writer, game_assets);
+pub(super) fn cleanup_game(mut commands: Commands, ents: Query<Entity, With<Size>>) {
+    for ent in ents.iter() {
+        commands.entity(ent).despawn();
     }
 }
 
