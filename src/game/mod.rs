@@ -21,6 +21,7 @@ pub(super) fn plugin(app: &mut App) {
                 .run_if(in_state(AppState::InGame)),
         )
         .add_systems(Update, toggle_pause)
+        .insert_resource(Score::default())
         .insert_resource(SnakeSegments::default())
         .insert_resource(LastTailPosition::default())
         .insert_resource(Direction::Up)

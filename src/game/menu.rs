@@ -9,9 +9,8 @@ pub(super) struct MenuData {
 
 const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
-const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.75, 0.35);
 
-pub(super) fn setup_menu(mut commands: Commands) {
+pub(super) fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
     let button_entity = commands
         .spawn(Node {
             // center button
@@ -26,21 +25,25 @@ pub(super) fn setup_menu(mut commands: Commands) {
                 .spawn((
                     Button,
                     Node {
-                        width: Val::Px(150.),
-                        height: Val::Px(65.),
+                        width: Val::Percent(40.),
+                        height: Val::Percent(10.),
                         // horizontally center child text
                         justify_content: JustifyContent::Center,
                         // vertically center child text
                         align_items: AlignItems::Center,
                         ..default()
                     },
+                    BorderColor(Color::BLACK),
+                    BorderRadius::MAX,
                     BackgroundColor(NORMAL_BUTTON),
                 ))
                 .with_children(|parent| {
                     parent.spawn((
                         Text::new("Play"),
                         TextFont {
-                            font_size: 33.0,
+                            font: asset_server.load("fonts/fibberish.ttf"), //TODO: use handle from
+                            //assets.
+                            font_size: 80.,
                             ..default()
                         },
                         TextColor(Color::srgb(0.9, 0.9, 0.9)),
@@ -51,17 +54,23 @@ pub(super) fn setup_menu(mut commands: Commands) {
     commands.insert_resource(MenuData { button_entity });
 }
 
+type InteractionQuery<'a, 'b> = Query<
+    'a,
+    'b,
+    (&'static Interaction, &'static mut BackgroundColor),
+    (Changed<Interaction>, With<Button>),
+>;
+
 pub(super) fn menu(
     mut next_state: ResMut<NextState<AppState>>,
-    mut interaction_query: Query<
-        (&Interaction, &mut BackgroundColor),
-        (Changed<Interaction>, With<Button>),
-    >,
+    mut interaction_query: InteractionQuery,
+    mut keys: ResMut<ButtonInput<KeyCode>>,
 ) {
     for (interaction, mut color) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
-                *color = PRESSED_BUTTON.into();
+                *color = NORMAL_BUTTON.into();
+                keys.reset_all();
                 next_state.set(AppState::InGame);
             }
             Interaction::Hovered => {

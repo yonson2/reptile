@@ -10,7 +10,7 @@ pub struct GameAsset {
 pub struct AudioAsset(pub Handle<AudioSource>);
 
 #[derive(Resource)]
-pub struct TextAsset(pub Handle<Font>);
+pub struct FontAsset(pub Handle<Font>);
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(PreStartup, load_assets);
@@ -41,7 +41,7 @@ fn load_assets(
     });
 
     commands.insert_resource(AudioAsset(audio));
-    commands.insert_resource(TextAsset(font));
+    commands.insert_resource(FontAsset(font));
 
     // Log that assets were loaded successfully
     info!("Game assets loaded successfully");

@@ -114,27 +114,18 @@ pub(super) fn spawn_food_empty_position(
     }
 }
 
-pub(super) fn menu_input(
-    keys: Res<ButtonInput<KeyCode>>,
-    mut next_state: ResMut<NextState<AppState>>,
-) {
-    if keys.get_just_pressed().next().is_some() {
-        next_state.set(AppState::InGame);
-    }
-}
-
 pub(super) fn snake_movement_input(
     keys: Res<ButtonInput<KeyCode>>,
     mut input_direction: ResMut<Direction>,
     snake_dir: Query<&Direction, With<SnakeHead>>,
 ) {
-    let new_dir = if keys.pressed(KeyCode::ArrowLeft) {
+    let new_dir = if keys.just_pressed(KeyCode::ArrowLeft) {
         Direction::Left
-    } else if keys.pressed(KeyCode::ArrowRight) {
+    } else if keys.just_pressed(KeyCode::ArrowRight) {
         Direction::Right
-    } else if keys.pressed(KeyCode::ArrowDown) {
+    } else if keys.just_pressed(KeyCode::ArrowDown) {
         Direction::Down
-    } else if keys.pressed(KeyCode::ArrowUp) {
+    } else if keys.just_pressed(KeyCode::ArrowUp) {
         Direction::Up
     } else {
         *input_direction
@@ -348,6 +339,7 @@ pub(super) struct SnakeGrowthParams<'w, 's> {
     food_writer: EventWriter<'w, FoodEvent>,
     game_assets: Res<'w, GameAsset>,
     audio: Res<'w, AudioAsset>,
+    score: ResMut<'w, Score>,
 }
 
 pub(super) fn snake_growth(mut commands: Commands, mut params: SnakeGrowthParams) {
@@ -376,14 +368,22 @@ pub(super) fn snake_growth(mut commands: Commands, mut params: SnakeGrowthParams
             params.game_assets,
             index,
         ));
+        params.score.0 += 1;
         params.food_writer.send(FoodEvent);
     }
 }
 
-pub(super) fn cleanup_game(mut commands: Commands, ents: Query<Entity, With<Size>>) {
+pub(super) fn cleanup_game(
+    mut commands: Commands,
+    ents: Query<Entity, With<Size>>,
+    mut keys: ResMut<ButtonInput<KeyCode>>,
+    score: Res<Score>,
+) {
     for ent in ents.iter() {
         commands.entity(ent).despawn();
     }
+    keys.reset_all();
+    info!("The score was: {}", score.0);
 }
 
 // Right now I'm not inserting non-images

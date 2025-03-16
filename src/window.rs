@@ -1,4 +1,4 @@
-use bevy::{prelude::*, window::WindowResolution};
+use bevy::{log::LogPlugin, prelude::*, window::WindowResolution};
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins(
@@ -11,6 +11,11 @@ pub(super) fn plugin(app: &mut App) {
                 }),
                 ..default()
             })
-            .set(ImagePlugin::default_nearest()),
+            .set(ImagePlugin::default_nearest())
+            .set(LogPlugin {
+                filter: "info,wgpu_core=warn,wgpu_hal=warn,mygame=debug".into(),
+                level: bevy::log::Level::DEBUG,
+                custom_layer: |_| None,
+            }),
     );
 }

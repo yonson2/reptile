@@ -1,5 +1,3 @@
-use bevy::color::Color;
-
 // Constants
 //opens mouth at +1/2/3/4 (bigger each) for each direciton
 pub(super) const SNAKE_HEAD_UP: usize = 48;
