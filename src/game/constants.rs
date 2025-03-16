@@ -20,6 +20,10 @@ pub(super) const SNAKE_TAIL_DOWN: usize = 40;
 pub(super) const SNAKE_TAIL_LEFT: usize = 39;
 pub(super) const SNAKE_TAIL_RIGHT: usize = 41;
 
+pub(super) const FOOD_RED: usize = 336;
+pub(super) const FOOD_GREEN: usize = 337;
+pub(super) const FOOD_YELLOW: usize = 338;
+
 pub(super) const FOOD_COLOR: Color = Color::srgb(1.0, 0.0, 1.0);
 
 pub(super) const ARENA_WIDTH: u32 = 11;

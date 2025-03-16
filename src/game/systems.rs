@@ -5,9 +5,10 @@ use crate::game::resources::*;
 
 use bevy::prelude::*;
 use bevy::{audio::PlaybackMode, ecs::system::SystemParam, window::PrimaryWindow};
-use fastrand;
 
 use crate::assets::{AudioAssets, GameAssets};
+
+pub mod world;
 
 pub(super) type Either<T, U> = Or<(With<T>, With<U>)>;
 
@@ -64,15 +65,26 @@ pub(super) fn spawn_snake_segment(
         .id()
 }
 
-pub(super) fn spawn_food(mut commands: Commands, position: Position) {
+pub(super) fn spawn_food(mut commands: Commands, position: Position, game_assets: Res<GameAssets>) {
+    // Randomly choose between the three food colors
+    let food_index = match fastrand::u8(0..3) {
+        0 => FOOD_RED,
+        1 => FOOD_GREEN,
+        _ => FOOD_YELLOW,
+    };
+
     commands
-        .spawn((Sprite {
-            color: FOOD_COLOR,
-            ..default()
-        },))
+        .spawn(Sprite::from_atlas_image(
+            game_assets.texture.clone(),
+            TextureAtlas {
+                layout: game_assets.atlas_layout.clone(),
+                index: food_index,
+            },
+        ))
+        .insert(ImageAsset)
         .insert(Food)
         .insert(position)
-        .insert(Size::square(0.8));
+        .insert(Size::square(1.));
 }
 
 pub(super) fn spawn_food_empty_position(
@@ -80,6 +92,7 @@ pub(super) fn spawn_food_empty_position(
     positions: Query<&Position>,
     food: Query<&Position, With<Food>>,
     mut food_reader: EventReader<FoodEvent>,
+    game_assets: Res<GameAssets>,
 ) {
     if food_reader.read().next().is_some() && food.iter().count() == 0 {
         let mut new_food_position;
@@ -96,7 +109,7 @@ pub(super) fn spawn_food_empty_position(
             }
             break;
         }
-        spawn_food(commands, new_food_position);
+        spawn_food(commands, new_food_position, game_assets);
     }
 }
 
@@ -372,6 +385,20 @@ pub(super) fn game_over(
     }
 }
 
+// Right now I'm not inserting non-images
+// TODO: refactor to use two different systems.
+//
+// To insert a non image, insert a sprite without
+// a ImageAsset component.
+// commands
+//     .spawn((Sprite {
+//         color: FOOD_COLOR,
+//         ..default()
+//     },))
+//     .insert(Food)
+//     .insert(position)
+//     .insert(Size::square(0.8));
+//
 pub(super) fn size_scaling(
     q_window: Query<&Window, With<PrimaryWindow>>,
     mut q_scale: Query<(&Size, &mut Transform, Option<&ImageAsset>)>,
