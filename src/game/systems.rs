@@ -5,7 +5,7 @@ use crate::game::resources::*;
 
 use bevy::prelude::*;
 use bevy::{audio::PlaybackMode, ecs::system::SystemParam, window::PrimaryWindow};
-use world::AppState;
+use world::GameState;
 
 use crate::assets::{AudioAsset, GameAsset};
 
@@ -24,6 +24,32 @@ pub(super) fn setup_game(
     // when we have finished the game so game destructors
     // would kill that info.
     score.0 = 0;
+    //setup scoreboard
+    commands
+        .spawn((
+            Text::new("Score: "),
+            TextFont {
+                font_size: SCOREBOARD_FONT_SIZE,
+                ..default()
+            },
+            TextColor(TEXT_COLOR),
+            ScoreboardUi,
+            Node {
+                position_type: PositionType::Absolute,
+                top: SCOREBOARD_TEXT_PADDING,
+                left: SCOREBOARD_TEXT_PADDING,
+                ..default()
+            },
+        ))
+        .with_child((
+            TextSpan::new("0"),
+            TextFont {
+                font_size: SCOREBOARD_FONT_SIZE,
+                ..default()
+            },
+            TextColor(SCORE_COLOR),
+        ));
+
     *segments = SnakeSegments(vec![
         commands
             .spawn(Sprite::from_atlas_image(
@@ -122,8 +148,12 @@ pub(super) fn spawn_food_empty_position(
 pub(super) fn snake_movement_input(
     keys: Res<ButtonInput<KeyCode>>,
     mut input_direction: ResMut<Direction>,
-    snake_dir: Single<&Direction, With<SnakeHead>>,
+    snake_dir: Option<Single<&Direction, With<SnakeHead>>>,
 ) {
+    if snake_dir.is_none() {
+        return;
+    }
+
     let new_dir = if keys.just_pressed(KeyCode::ArrowLeft) {
         Direction::Left
     } else if keys.just_pressed(KeyCode::ArrowRight) {
@@ -136,7 +166,7 @@ pub(super) fn snake_movement_input(
         *input_direction
     };
 
-    if new_dir != snake_dir.opposite() {
+    if new_dir != snake_dir.unwrap().opposite() {
         *input_direction = new_dir;
     }
 }
@@ -146,9 +176,13 @@ pub(super) fn snake_repaint(
     positions: Query<&Position, Either<SnakeHead, SnakeBody>>,
     foods: Query<&Position, With<Food>>,
     mut sprites: Query<&mut Sprite, Either<SnakeHead, SnakeBody>>,
-    head_dir: Single<&Direction, With<SnakeHead>>,
+    head_dir: Option<Single<&Direction, With<SnakeHead>>>,
 ) {
-    let head_dir = head_dir.into_inner();
+    if head_dir.is_none() {
+        return;
+    }
+
+    let head_dir = head_dir.unwrap().into_inner();
 
     let segment_positions = segments
         .0
@@ -252,12 +286,16 @@ pub(super) fn snake_repaint(
 pub(super) fn snake_movement(
     segments: Res<SnakeSegments>,
     input_direction: Res<Direction>,
-    head: Single<(Entity, &mut Direction), With<SnakeHead>>,
-    mut next_state: ResMut<NextState<AppState>>,
+    head: Option<Single<(Entity, &mut Direction), With<SnakeHead>>>,
+    mut next_state: ResMut<NextState<GameState>>,
     mut last_tail_position: ResMut<LastTailPosition>,
     mut positions: Query<&mut Position>,
 ) {
-    let (head_entity, mut head_direction) = head.into_inner();
+    if head.is_none() {
+        return;
+    }
+
+    let (head_entity, mut head_direction) = head.unwrap().into_inner();
 
     // Make a copy of the previous positions.
     let segment_positions = segments
@@ -305,7 +343,7 @@ pub(super) fn snake_movement(
     }
 
     if segment_positions.contains(&head_pos) {
-        next_state.set(AppState::Menu);
+        next_state.set(GameState::GameOver);
         return;
     }
 
@@ -324,9 +362,12 @@ pub(super) fn snake_eating(
     mut commands: Commands,
     mut growth_writer: EventWriter<GrowthEvent>,
     food_pos: Query<(Entity, &Position), With<Food>>,
-    head_pos: Query<&Position, With<SnakeHead>>,
+    head_pos: Option<Single<&Position, With<SnakeHead>>>,
 ) {
-    let head_pos = head_pos.single();
+    if head_pos.is_none() {
+        return;
+    }
+    let head_pos = head_pos.unwrap().into_inner();
     for (ent, food_pos) in &food_pos {
         if head_pos == food_pos {
             commands.entity(ent).despawn();
@@ -382,17 +423,29 @@ pub(super) fn snake_growth(mut commands: Commands, mut params: SnakeGrowthParams
     }
 }
 
+pub(super) fn game_over_input(
+    mut keys: ResMut<ButtonInput<KeyCode>>,
+    mut next_state: ResMut<NextState<GameState>>,
+) {
+    if keys.just_pressed(KeyCode::ArrowUp) {
+        next_state.set(GameState::Playing);
+        keys.reset_all();
+    }
+}
+
 pub(super) fn cleanup_game(
     mut commands: Commands,
     ents: Query<Entity, With<Size>>,
     mut keys: ResMut<ButtonInput<KeyCode>>,
-    score: Res<Score>,
+    scoreboard: Option<Single<Entity, With<ScoreboardUi>>>,
 ) {
     for ent in ents.iter() {
         commands.entity(ent).despawn();
     }
+    if let Some(scoreboard) = scoreboard {
+        commands.entity(scoreboard.into_inner()).despawn_recursive();
+    }
     keys.reset_all();
-    info!("The score was: {}", score.0);
 }
 
 // Right now I'm not inserting non-images
