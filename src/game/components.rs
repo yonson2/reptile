@@ -28,6 +28,9 @@ pub(super) struct SnakeBody;
 #[derive(Component)]
 pub(super) struct Food;
 
+#[derive(Component)]
+pub(super) struct ScoreboardUi;
+
 #[derive(Debug, Component, Clone, Copy, PartialEq, Eq)]
 pub(super) struct Position {
     pub x: i32,

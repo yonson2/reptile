@@ -1,16 +1,16 @@
 use bevy::prelude::*;
 
-use super::AppState;
+use crate::game::AppState;
 
 #[derive(Resource)]
-pub(super) struct MenuData {
+pub struct MenuData {
     pub button_entity: Entity,
 }
 
 const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
 
-pub(super) fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
+pub fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
     let button_entity = commands
         .spawn(Node {
             // center button
@@ -61,7 +61,7 @@ type InteractionQuery<'a, 'b> = Query<
     (Changed<Interaction>, With<Button>),
 >;
 
-pub(super) fn menu(
+pub fn menu(
     mut next_state: ResMut<NextState<AppState>>,
     mut interaction_query: InteractionQuery,
     mut keys: ResMut<ButtonInput<KeyCode>>,
@@ -71,7 +71,7 @@ pub(super) fn menu(
             Interaction::Pressed => {
                 *color = NORMAL_BUTTON.into();
                 keys.reset_all();
-                next_state.set(AppState::InGame);
+                next_state.set(AppState::Game);
             }
             Interaction::Hovered => {
                 *color = HOVERED_BUTTON.into();
@@ -83,6 +83,6 @@ pub(super) fn menu(
     }
 }
 
-pub(super) fn cleanup_menu(mut commands: Commands, menu_data: Res<MenuData>) {
+pub fn cleanup_menu(mut commands: Commands, menu_data: Res<MenuData>) {
     commands.entity(menu_data.button_entity).despawn_recursive();
 }

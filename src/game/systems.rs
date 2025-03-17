@@ -15,10 +15,15 @@ pub(super) type Either<T, U> = Or<(With<T>, With<U>)>;
 
 pub(super) fn setup_game(
     mut commands: Commands,
+    mut score: ResMut<Score>,
     mut segments: ResMut<SnakeSegments>,
     mut food_writer: EventWriter<FoodEvent>,
     game_assets: Res<GameAsset>,
 ) {
+    // We cleanup the score here because we also use it
+    // when we have finished the game so game destructors
+    // would kill that info.
+    score.0 = 0;
     *segments = SnakeSegments(vec![
         commands
             .spawn(Sprite::from_atlas_image(
@@ -117,7 +122,7 @@ pub(super) fn spawn_food_empty_position(
 pub(super) fn snake_movement_input(
     keys: Res<ButtonInput<KeyCode>>,
     mut input_direction: ResMut<Direction>,
-    snake_dir: Query<&Direction, With<SnakeHead>>,
+    snake_dir: Single<&Direction, With<SnakeHead>>,
 ) {
     let new_dir = if keys.just_pressed(KeyCode::ArrowLeft) {
         Direction::Left
@@ -131,7 +136,7 @@ pub(super) fn snake_movement_input(
         *input_direction
     };
 
-    if new_dir != snake_dir.single().opposite() {
+    if new_dir != snake_dir.opposite() {
         *input_direction = new_dir;
     }
 }
@@ -141,9 +146,10 @@ pub(super) fn snake_repaint(
     positions: Query<&Position, Either<SnakeHead, SnakeBody>>,
     foods: Query<&Position, With<Food>>,
     mut sprites: Query<&mut Sprite, Either<SnakeHead, SnakeBody>>,
-    head_direction: Query<&Direction, With<SnakeHead>>,
+    head_dir: Single<&Direction, With<SnakeHead>>,
 ) {
-    let head_dir = *head_direction.single();
+    let head_dir = head_dir.into_inner();
+
     let segment_positions = segments
         .0
         .iter()
@@ -246,12 +252,12 @@ pub(super) fn snake_repaint(
 pub(super) fn snake_movement(
     segments: Res<SnakeSegments>,
     input_direction: Res<Direction>,
-    mut heads: Query<(Entity, &mut Direction), With<SnakeHead>>,
+    head: Single<(Entity, &mut Direction), With<SnakeHead>>,
     mut next_state: ResMut<NextState<AppState>>,
     mut last_tail_position: ResMut<LastTailPosition>,
     mut positions: Query<&mut Position>,
 ) {
-    let (head_entity, mut head_direction) = heads.single_mut();
+    let (head_entity, mut head_direction) = head.into_inner();
 
     // Make a copy of the previous positions.
     let segment_positions = segments
@@ -340,6 +346,8 @@ pub(super) struct SnakeGrowthParams<'w, 's> {
     game_assets: Res<'w, GameAsset>,
     audio: Res<'w, AudioAsset>,
     score: ResMut<'w, Score>,
+    score_root: Single<'w, Entity, (With<ScoreboardUi>, With<Text>)>,
+    writer: TextUiWriter<'w, 's>,
 }
 
 pub(super) fn snake_growth(mut commands: Commands, mut params: SnakeGrowthParams) {
@@ -369,6 +377,7 @@ pub(super) fn snake_growth(mut commands: Commands, mut params: SnakeGrowthParams
             index,
         ));
         params.score.0 += 1;
+        *params.writer.text(*params.score_root, 1) = params.score.0.to_string();
         params.food_writer.send(FoodEvent);
     }
 }
@@ -428,14 +437,13 @@ pub(super) fn size_scaling(
 }
 
 pub(super) fn position_translation(
-    q_window: Query<&Window, With<PrimaryWindow>>,
+    window: Single<&Window, With<PrimaryWindow>>,
     mut q: Query<(&Position, &mut Transform)>,
 ) {
     fn convert(pos: f32, bound_window: f32, bound_game: f32) -> f32 {
         let tile_size = bound_window / bound_game;
         pos / bound_game * bound_window - (bound_window / 2.) + (tile_size / 2.)
     }
-    let window = q_window.single();
     for (pos, mut transform) in q.iter_mut() {
         transform.translation = Vec3::new(
             convert(pos.x as f32, window.width(), ARENA_WIDTH as f32),

@@ -1,3 +1,5 @@
+use bevy::{color::Color, ui::Val};
+
 // Constants
 //opens mouth at +1/2/3/4 (bigger each) for each direciton
 pub(super) const SNAKE_HEAD_UP: usize = 48;
@@ -21,6 +23,11 @@ pub(super) const SNAKE_TAIL_RIGHT: usize = 41;
 pub(super) const FOOD_RED: usize = 336;
 pub(super) const FOOD_GREEN: usize = 337;
 pub(super) const FOOD_YELLOW: usize = 338;
+
+pub(super) const SCOREBOARD_FONT_SIZE: f32 = 33.0;
+pub(super) const SCOREBOARD_TEXT_PADDING: Val = Val::Px(5.0);
+pub(super) const TEXT_COLOR: Color = Color::srgb(0.5, 0.5, 1.0);
+pub(super) const SCORE_COLOR: Color = Color::srgb(1.0, 0.5, 0.5);
 
 // pub(super) const FOOD_COLOR: Color = Color::srgb(1.0, 0.0, 1.0);
 
