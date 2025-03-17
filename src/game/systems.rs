@@ -13,6 +13,9 @@ pub mod world;
 
 pub(super) type Either<T, U> = Or<(With<T>, With<U>)>;
 
+#[derive(Component)]
+pub struct MainGameScreen;
+
 pub(super) fn setup_game(
     mut commands: Commands,
     mut score: ResMut<Score>,
@@ -33,6 +36,7 @@ pub(super) fn setup_game(
                 ..default()
             },
             TextColor(TEXT_COLOR),
+            MainGameScreen,
             ScoreboardUi,
             Node {
                 position_type: PositionType::Absolute,
@@ -50,6 +54,11 @@ pub(super) fn setup_game(
             TextColor(SCORE_COLOR),
         ));
 
+    commands
+        .spawn(Direction::default())
+        .insert(UserInput)
+        .insert(MainGameScreen);
+
     *segments = SnakeSegments(vec![
         commands
             .spawn(Sprite::from_atlas_image(
@@ -60,8 +69,9 @@ pub(super) fn setup_game(
                 },
             ))
             .insert(ImageAsset)
+            .insert(MainGameScreen)
             .insert(SnakeHead)
-            .insert(Direction::Up)
+            .insert(Direction::default())
             .insert(Position { x: 5, y: 5 })
             .insert(Size::square(1.))
             .id(),
@@ -90,6 +100,7 @@ pub(super) fn spawn_snake_segment(
                 index: sprite_index,
             },
         ))
+        .insert(MainGameScreen)
         .insert(ImageAsset)
         .insert(SnakeBody)
         .insert(position)
@@ -113,6 +124,7 @@ pub(super) fn spawn_food(mut commands: Commands, position: Position, game_assets
                 index: food_index,
             },
         ))
+        .insert(MainGameScreen)
         .insert(ImageAsset)
         .insert(Food)
         .insert(position)
@@ -147,9 +159,11 @@ pub(super) fn spawn_food_empty_position(
 
 pub(super) fn snake_movement_input(
     keys: Res<ButtonInput<KeyCode>>,
-    mut input_direction: ResMut<Direction>,
+    input_direction: Single<&mut Direction, (With<UserInput>, Without<SnakeHead>)>,
     snake_dir: Option<Single<&Direction, With<SnakeHead>>>,
 ) {
+    let mut input_direction = input_direction.into_inner();
+
     if snake_dir.is_none() {
         return;
     }
@@ -285,12 +299,14 @@ pub(super) fn snake_repaint(
 
 pub(super) fn snake_movement(
     segments: Res<SnakeSegments>,
-    input_direction: Res<Direction>,
+    input_direction: Single<&mut Direction, (With<UserInput>, Without<SnakeHead>)>,
     head: Option<Single<(Entity, &mut Direction), With<SnakeHead>>>,
     mut next_state: ResMut<NextState<GameState>>,
     mut last_tail_position: ResMut<LastTailPosition>,
     mut positions: Query<&mut Position>,
 ) {
+    let mut input_direction = input_direction.into_inner();
+
     if head.is_none() {
         return;
     }
@@ -343,6 +359,7 @@ pub(super) fn snake_movement(
     }
 
     if segment_positions.contains(&head_pos) {
+        *input_direction = Direction::Up;
         next_state.set(GameState::GameOver);
         return;
     }
@@ -395,6 +412,7 @@ pub(super) fn snake_growth(mut commands: Commands, mut params: SnakeGrowthParams
     if params.growth_reader.read().next().is_some() {
         commands.spawn((
             AudioPlayer(params.audio.0.clone()),
+            MainGameScreen,
             PlaybackSettings {
                 mode: PlaybackMode::Despawn,
                 paused: false,
@@ -431,21 +449,6 @@ pub(super) fn game_over_input(
         next_state.set(GameState::Playing);
         keys.reset_all();
     }
-}
-
-pub(super) fn cleanup_game(
-    mut commands: Commands,
-    ents: Query<Entity, With<Size>>,
-    mut keys: ResMut<ButtonInput<KeyCode>>,
-    scoreboard: Option<Single<Entity, With<ScoreboardUi>>>,
-) {
-    for ent in ents.iter() {
-        commands.entity(ent).despawn();
-    }
-    if let Some(scoreboard) = scoreboard {
-        commands.entity(scoreboard.into_inner()).despawn_recursive();
-    }
-    keys.reset_all();
 }
 
 // Right now I'm not inserting non-images

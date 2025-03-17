@@ -35,21 +35,27 @@ pub(super) fn plugin(app: &mut App) {
         .insert_resource(Score::default())
         .insert_resource(SnakeSegments::default())
         .insert_resource(LastTailPosition::default())
-        .insert_resource(Direction::Up)
         .add_systems(OnEnter(AppState::Menu), ui::menu::setup_menu)
         .add_systems(OnExit(AppState::Menu), despawn_screen::<MainMenuScreen>)
         .add_systems(OnEnter(AppState::Game), setup_game)
         .add_systems(
             OnExit(AppState::Game),
-            (cleanup_game, despawn_screen::<GameOverScreen>),
+            (
+                despawn_screen::<MainGameScreen>,
+                despawn_screen::<GameOverScreen>,
+            ),
         )
-        .add_systems(OnExit(GameState::Playing), cleanup_game)
+        .add_systems(OnExit(GameState::Playing), despawn_screen::<MainGameScreen>)
         .add_systems(OnEnter(GameState::GameOver), ui::menu::setup_game_over)
         .add_systems(
             OnExit(GameState::GameOver),
-            despawn_screen::<GameOverScreen>,
+            (
+                despawn_screen::<GameOverScreen>,
+                despawn_screen::<MainGameScreen>,
+                setup_game,
+            )
+                .chain(),
         )
-        .add_systems(OnExit(GameState::GameOver), setup_game)
         .add_systems(Update, ui::menu::menu.run_if(in_state(AppState::Menu)))
         // game logic:
         // runs on AppState::Game && GameState::Playing && PausedState::Running.

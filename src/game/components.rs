@@ -1,11 +1,12 @@
 use bevy::prelude::*;
 
-#[derive(Component, Resource, PartialEq, Copy, Clone)]
+#[derive(Component, PartialEq, Copy, Clone, Default)]
 pub(super) enum Direction {
-    Left,
+    #[default]
     Up,
-    Right,
     Down,
+    Left,
+    Right,
 }
 
 impl Direction {
@@ -30,6 +31,9 @@ pub(super) struct Food;
 
 #[derive(Component)]
 pub(super) struct ScoreboardUi;
+
+#[derive(Component)]
+pub(super) struct UserInput;
 
 #[derive(Debug, Component, Clone, Copy, PartialEq, Eq)]
 pub(super) struct Position {

@@ -5,8 +5,6 @@ pub fn global_input(
     state: Res<State<PausedState>>,
     mut next_paused_state: ResMut<NextState<PausedState>>,
     mut next_app_state: ResMut<NextState<AppState>>,
-    game_state: Res<State<GameState>>,
-    mut next_game_state: ResMut<NextState<GameState>>,
 ) {
     if keys.just_pressed(KeyCode::KeyP) {
         match state.get() {
@@ -15,9 +13,6 @@ pub fn global_input(
         }
     } else if keys.just_pressed(KeyCode::KeyQ) {
         next_app_state.set(AppState::Menu);
-        if let GameState::GameOver = game_state.get() {
-            next_game_state.set(GameState::Playing);
-        }
     }
 }
 
@@ -30,9 +25,9 @@ pub enum PausedState {
 
 #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AppState {
-    Game,
     #[default]
     Menu,
+    Game,
 }
 
 #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
