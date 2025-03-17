@@ -1,19 +1,28 @@
-name: Build and Release WASM
+name: Deploy to GitHub Pages
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: ["main"]
+  workflow_dispatch:
 
 permissions:
   contents: write
-  packages: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  build-wasm:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
       
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -35,17 +44,15 @@ jobs:
           cp -r assets release/
           cp index.html release/
           wasm-bindgen --out-dir release --target web ./target/wasm32-unknown-unknown/wasm-release/reptile.wasm
-          
-          # Create ZIP archive
-          VERSION=${GITHUB_REF#refs/tags/}
-          cd release && zip -r reptile-${VERSION}-wasm.zip *
-          cd .. && mv release/*.zip .
       
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          files: reptile-*.zip
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          path: './release'
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
