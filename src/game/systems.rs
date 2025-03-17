@@ -168,13 +168,13 @@ pub(super) fn snake_movement_input(
         return;
     }
 
-    let new_dir = if keys.just_pressed(KeyCode::ArrowLeft) {
+    let new_dir = if keys.pressed(KeyCode::ArrowLeft) {
         Direction::Left
-    } else if keys.just_pressed(KeyCode::ArrowRight) {
+    } else if keys.pressed(KeyCode::ArrowRight) {
         Direction::Right
-    } else if keys.just_pressed(KeyCode::ArrowDown) {
+    } else if keys.pressed(KeyCode::ArrowDown) {
         Direction::Down
-    } else if keys.just_pressed(KeyCode::ArrowUp) {
+    } else if keys.pressed(KeyCode::ArrowUp) {
         Direction::Up
     } else {
         *input_direction
@@ -445,7 +445,7 @@ pub(super) fn game_over_input(
     mut keys: ResMut<ButtonInput<KeyCode>>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
-    if keys.just_pressed(KeyCode::ArrowUp) {
+    if keys.clear_just_pressed(KeyCode::ArrowUp) {
         next_state.set(GameState::Playing);
         keys.reset_all();
     }

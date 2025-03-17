@@ -1,17 +1,17 @@
 use bevy::prelude::*;
 
 pub fn global_input(
-    keys: Res<ButtonInput<KeyCode>>,
+    mut keys: ResMut<ButtonInput<KeyCode>>,
     state: Res<State<PausedState>>,
     mut next_paused_state: ResMut<NextState<PausedState>>,
     mut next_app_state: ResMut<NextState<AppState>>,
 ) {
-    if keys.just_pressed(KeyCode::KeyP) {
+    if keys.clear_just_pressed(KeyCode::KeyP) {
         match state.get() {
             PausedState::Paused => next_paused_state.set(PausedState::Running),
             PausedState::Running => next_paused_state.set(PausedState::Paused),
         }
-    } else if keys.just_pressed(KeyCode::KeyQ) {
+    } else if keys.clear_just_pressed(KeyCode::KeyQ) {
         next_app_state.set(AppState::Menu);
     }
 }
