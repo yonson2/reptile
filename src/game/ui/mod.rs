@@ -1,7 +1,7 @@
 use crate::game::constants::*;
 use bevy::prelude::*;
 
-use super::{Score, ScoreboardUi};
+use super::ScoreboardUi;
 pub mod menu;
 
 pub(super) fn setup_scoreboard(mut commands: Commands) {

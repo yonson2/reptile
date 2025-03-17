@@ -1,25 +1,51 @@
 use bevy::prelude::*;
 
-use crate::game::AppState;
-
-#[derive(Resource)]
-pub struct MenuData {
-    pub button_entity: Entity,
-}
+use crate::game::{constants::SCORE_COLOR, AppState};
 
 const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
 
+#[derive(Component)]
+pub struct MainMenuScreen;
+
 pub fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let button_entity = commands
-        .spawn(Node {
-            // center button
-            width: Val::Percent(100.),
-            height: Val::Percent(100.),
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-            ..default()
-        })
+    let font = asset_server.load("fonts/fibberish.ttf"); //TODO: use handle from
+    commands
+        .spawn((
+            Node {
+                width: Val::Percent(100.),
+                justify_content: JustifyContent::Center,
+                margin: UiRect {
+                    top: Val::Px(150.),
+                    ..default()
+                },
+                ..default()
+            },
+            MainMenuScreen,
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                Text::new("Snake"),
+                TextFont {
+                    font: font.clone(),
+                    font_size: 180.,
+                    ..default()
+                },
+                TextColor(SCORE_COLOR),
+            ));
+        });
+
+    commands
+        .spawn((
+            Node {
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            MainMenuScreen,
+        ))
         .with_children(|parent| {
             parent
                 .spawn((
@@ -27,9 +53,7 @@ pub fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
                     Node {
                         width: Val::Percent(40.),
                         height: Val::Percent(10.),
-                        // horizontally center child text
                         justify_content: JustifyContent::Center,
-                        // vertically center child text
                         align_items: AlignItems::Center,
                         ..default()
                     },
@@ -41,7 +65,7 @@ pub fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
                     parent.spawn((
                         Text::new("Play"),
                         TextFont {
-                            font: asset_server.load("fonts/fibberish.ttf"), //TODO: use handle from
+                            font: font.clone(),
                             //assets.
                             font_size: 80.,
                             ..default()
@@ -49,9 +73,7 @@ pub fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
                         TextColor(Color::srgb(0.9, 0.9, 0.9)),
                     ));
                 });
-        })
-        .id();
-    commands.insert_resource(MenuData { button_entity });
+        });
 }
 
 type InteractionQuery<'a, 'b> = Query<
@@ -81,8 +103,4 @@ pub fn menu(
             }
         }
     }
-}
-
-pub fn cleanup_menu(mut commands: Commands, menu_data: Res<MenuData>) {
-    commands.entity(menu_data.button_entity).despawn_recursive();
 }

@@ -410,46 +410,49 @@ pub(super) fn cleanup_game(
 //     .insert(Size::square(0.8));
 //
 pub(super) fn size_scaling(
-    q_window: Query<&Window, With<PrimaryWindow>>,
+    window: Option<Single<&Window, With<PrimaryWindow>>>,
     mut q_scale: Query<(&Size, &mut Transform, Option<&ImageAsset>)>,
 ) {
-    let window = q_window.single();
-    let tile_width = window.width() / ARENA_WIDTH as f32;
-    let tile_height = window.height() / ARENA_HEIGHT as f32;
+    if let Some(window) = window {
+        let tile_width = window.width() / ARENA_WIDTH as f32;
+        let tile_height = window.height() / ARENA_HEIGHT as f32;
 
-    for (sprite_size, mut transform, is_image) in &mut q_scale {
-        if is_image.is_some() {
-            let sprite_pixel_size = 16.0; // Size of one sprite in the atlas
+        for (sprite_size, mut transform, is_image) in &mut q_scale {
+            if is_image.is_some() {
+                let sprite_pixel_size = 16.0; // Size of one sprite in the atlas
 
-            transform.scale = Vec3::new(
-                tile_width * sprite_size.width / sprite_pixel_size,
-                tile_height * sprite_size.height / sprite_pixel_size,
-                1.0,
-            );
-        } else {
-            transform.scale = Vec3::new(
-                sprite_size.width / ARENA_WIDTH as f32 * window.width(),
-                sprite_size.height / ARENA_HEIGHT as f32 * window.height(),
-                1.0,
-            );
+                transform.scale = Vec3::new(
+                    tile_width * sprite_size.width / sprite_pixel_size,
+                    tile_height * sprite_size.height / sprite_pixel_size,
+                    1.0,
+                );
+            } else {
+                transform.scale = Vec3::new(
+                    sprite_size.width / ARENA_WIDTH as f32 * window.width(),
+                    sprite_size.height / ARENA_HEIGHT as f32 * window.height(),
+                    1.0,
+                );
+            }
         }
     }
 }
 
 pub(super) fn position_translation(
-    window: Single<&Window, With<PrimaryWindow>>,
+    window: Option<Single<&Window, With<PrimaryWindow>>>,
     mut q: Query<(&Position, &mut Transform)>,
 ) {
-    fn convert(pos: f32, bound_window: f32, bound_game: f32) -> f32 {
-        let tile_size = bound_window / bound_game;
-        pos / bound_game * bound_window - (bound_window / 2.) + (tile_size / 2.)
-    }
-    for (pos, mut transform) in q.iter_mut() {
-        transform.translation = Vec3::new(
-            convert(pos.x as f32, window.width(), ARENA_WIDTH as f32),
-            convert(pos.y as f32, window.height(), ARENA_HEIGHT as f32),
-            0.0,
-        );
+    if let Some(window) = window {
+        fn convert(pos: f32, bound_window: f32, bound_game: f32) -> f32 {
+            let tile_size = bound_window / bound_game;
+            pos / bound_game * bound_window - (bound_window / 2.) + (tile_size / 2.)
+        }
+        for (pos, mut transform) in q.iter_mut() {
+            transform.translation = Vec3::new(
+                convert(pos.x as f32, window.width(), ARENA_WIDTH as f32),
+                convert(pos.y as f32, window.height(), ARENA_HEIGHT as f32),
+                0.0,
+            );
+        }
     }
 }
 

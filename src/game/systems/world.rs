@@ -3,13 +3,16 @@ use bevy::prelude::*;
 pub fn toggle_pause(
     keys: Res<ButtonInput<KeyCode>>,
     state: Res<State<MyPausedState>>,
-    mut next_state: ResMut<NextState<MyPausedState>>,
+    mut next_paused_state: ResMut<NextState<MyPausedState>>,
+    mut next_app_state: ResMut<NextState<AppState>>,
 ) {
     if keys.just_pressed(KeyCode::KeyP) {
         match state.get() {
-            MyPausedState::Paused => next_state.set(MyPausedState::Running),
-            MyPausedState::Running => next_state.set(MyPausedState::Paused),
+            MyPausedState::Paused => next_paused_state.set(MyPausedState::Running),
+            MyPausedState::Running => next_paused_state.set(MyPausedState::Paused),
         }
+    } else if keys.just_pressed(KeyCode::KeyQ) {
+        next_app_state.set(AppState::Menu);
     }
 }
 
