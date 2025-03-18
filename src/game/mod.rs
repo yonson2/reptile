@@ -23,8 +23,11 @@ use ui::{
 use std::time::Duration;
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_plugins(controller::plugin)
-        .insert_resource(ClearColor(Color::srgb(0.04, 0.04, 0.04)))
+    #[cfg(target_arch = "wasm32")]
+    {
+        app.add_plugins(controller::plugin);
+    }
+    app.insert_resource(ClearColor(Color::srgb(0.04, 0.04, 0.04)))
         .init_state::<PausedState>()
         .init_state::<AppState>()
         .init_state::<GameState>()

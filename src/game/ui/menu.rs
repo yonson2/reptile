@@ -209,6 +209,11 @@ pub fn setup_game_over(mut commands: Commands, asset_server: Res<AssetServer>, s
         });
 
     // Create a single container for all text elements
+    let mut play_again_text = "(Press Up to play again)";
+    #[cfg(target_arch = "wasm32")]
+    {
+        play_again_text = "(Reload to play again)";
+    }
     commands
         .spawn((
             Node {
@@ -234,7 +239,7 @@ pub fn setup_game_over(mut commands: Commands, asset_server: Res<AssetServer>, s
 
             // Play again text
             parent.spawn((
-                Text::new("(Press Up to play again)"),
+                Text::new(play_again_text),
                 TextFont {
                     font_size: 33.,
                     ..default()
