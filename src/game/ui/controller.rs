@@ -4,7 +4,7 @@ use crate::{
         constants::*,
         events::ControllerEvent,
         systems::world::{AppState, GameState},
-        ArbitraryPosition, Controller, Direction, MainGameScreen, Position, Size,
+        ArbitraryPosition, Controller, Direction, Height, MainGameScreen, Position, Size,
     },
 };
 use bevy::{input::touch::Touches, prelude::*};
@@ -58,10 +58,10 @@ fn setup_controller_if_needed(
 
 fn setup_controller(commands: &mut Commands, controller_asset: Res<ControllerAsset>) {
     let controller_buttons = [
-        (CONTROLLER_UP, 3.5, 1.75, Direction::Up),
-        (CONTROLLER_DOWN, 3.5, 0.25, Direction::Down),
-        (CONTROLLER_LEFT, 2.75, 1.0, Direction::Left),
-        (CONTROLLER_RIGHT, 4.25, 1.0, Direction::Right),
+        (CONTROLLER_UP, 3.5, 2.75, Direction::Up),
+        (CONTROLLER_DOWN, 3.5, 1.25, Direction::Down),
+        (CONTROLLER_LEFT, 2.75, 2.0, Direction::Left),
+        (CONTROLLER_RIGHT, 4.25, 2.0, Direction::Right),
     ];
 
     for (index, x, y, dir) in controller_buttons {
@@ -179,6 +179,7 @@ fn spawn_controller_button(
             },
         ))
         .insert(dir)
+        .insert(Height(1.))
         .insert(Controller)
         .insert(ImageAsset)
         .insert(MainGameScreen)

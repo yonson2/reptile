@@ -67,6 +67,16 @@ pub struct Size {
     pub width: f32,
     pub height: f32,
 }
+
+#[derive(Component, Debug, Clone, Copy, PartialEq)]
+pub struct Height(pub f32);
+
+impl Default for Height {
+    fn default() -> Self {
+        Self(0.)
+    }
+}
+
 impl Size {
     pub fn square(x: f32) -> Self {
         Self {

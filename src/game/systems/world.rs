@@ -50,27 +50,28 @@ pub fn size_scaling(
 
 pub fn position_translation(
     window: Option<Single<&Window, With<PrimaryWindow>>>,
-    mut q: Query<(&Position, &mut Transform)>,
+    mut q: Query<(&Position, Option<&Height>, &mut Transform)>,
 ) {
     if let Some(window) = window {
         fn convert(pos: f32, bound_window: f32, bound_game: f32) -> f32 {
             let tile_size = bound_window / bound_game;
             pos / bound_game * bound_window - (bound_window / 2.) + (tile_size / 2.)
         }
-        for (&pos, mut transform) in q.iter_mut() {
+        for (&pos, height, mut transform) in q.iter_mut() {
+            let z_index = height.unwrap_or(&default()).0;
             match pos {
                 Position::Fixed(pos) => {
                     transform.translation = Vec3::new(
                         convert(pos.x as f32, window.width(), ARENA_WIDTH as f32),
                         convert(pos.y as f32, window.height(), ARENA_HEIGHT as f32),
-                        0.0,
+                        z_index,
                     );
                 }
                 Position::Arbitrary(pos) => {
                     transform.translation = Vec3::new(
                         convert(pos.x, window.width(), ARENA_WIDTH as f32),
                         convert(pos.y, window.height(), ARENA_HEIGHT as f32),
-                        0.0,
+                        z_index,
                     );
                 }
             };
