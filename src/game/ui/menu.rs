@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{input::touch::Touches, prelude::*};
 
 use crate::game::{constants::*, AppState, Score};
 
@@ -11,7 +11,6 @@ pub struct MainMenuScreen;
 #[derive(Component)]
 pub struct GameOverScreen;
 
-//TODO: rename to setup
 pub fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
     let font = asset_server.load("fonts/fibberish.ttf"); //TODO: use handle from
     commands
@@ -80,31 +79,103 @@ pub fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
         });
 }
 
-type InteractionQuery<'a, 'b> = Query<
+type ButtonQuery<'a, 'b> = Query<
     'a,
     'b,
-    (&'static Interaction, &'static mut BackgroundColor),
-    (Changed<Interaction>, With<Button>),
+    (
+        Entity,
+        &'static GlobalTransform,
+        &'static mut BackgroundColor,
+    ),
+    With<Button>,
 >;
 
+/// Updated menu function to handle both mouse clicks and touch events
 pub fn menu(
     mut next_state: ResMut<NextState<AppState>>,
-    mut interaction_query: InteractionQuery,
+    mut button_query: ButtonQuery,
+    interaction_query: Query<(&Interaction, Entity), (Changed<Interaction>, With<Button>)>,
+    mouse_button_input: Res<ButtonInput<MouseButton>>,
+    touches: Res<Touches>,
+    window_q: Query<&Window>,
+    camera_q: Query<(&Camera, &GlobalTransform)>,
     mut keys: ResMut<ButtonInput<KeyCode>>,
 ) {
-    for (interaction, mut color) in &mut interaction_query {
-        match *interaction {
-            Interaction::Pressed => {
-                *color = NORMAL_BUTTON.into();
-                keys.reset_all();
-                next_state.set(AppState::Game);
+    // Process standard interaction events (for desktop/mouse hover effects)
+    for (interaction, entity) in &interaction_query {
+        if let Ok((_, _, mut color)) = button_query.get_mut(entity) {
+            match *interaction {
+                Interaction::Pressed => {
+                    *color = NORMAL_BUTTON.into();
+                    keys.reset_all();
+                    next_state.set(AppState::Game);
+                }
+                Interaction::Hovered => {
+                    *color = HOVERED_BUTTON.into();
+                }
+                Interaction::None => {
+                    *color = NORMAL_BUTTON.into();
+                }
             }
-            Interaction::Hovered => {
-                *color = HOVERED_BUTTON.into();
-            }
-            Interaction::None => {
-                *color = NORMAL_BUTTON.into();
-            }
+        }
+    }
+
+    // Get window and camera data
+    let Ok(window) = window_q.get_single() else {
+        return;
+    };
+    let Ok((camera, camera_transform)) = camera_q.get_single() else {
+        return;
+    };
+
+    // Handle touch input
+    for touch in touches.iter_just_pressed() {
+        process_button_input(
+            touch.position(),
+            window,
+            camera,
+            camera_transform,
+            &mut button_query,
+            &mut next_state,
+            &mut keys,
+        );
+    }
+}
+
+/// Shared function to process a pointer position (from mouse or touch)
+fn process_button_input(
+    pointer_position: Vec2,
+    window: &Window,
+    camera: &Camera,
+    camera_transform: &GlobalTransform,
+    button_query: &mut ButtonQuery,
+    next_state: &mut ResMut<NextState<AppState>>,
+    keys: &mut ResMut<ButtonInput<KeyCode>>,
+) {
+    // Convert screen coordinates to world coordinates
+    let Ok(world_position) = camera.viewport_to_world_2d(camera_transform, pointer_position) else {
+        return;
+    };
+
+    // Check if any button was clicked/touched
+    for (_, transform, _) in button_query.iter_mut() {
+        let button_position = transform.translation().truncate();
+
+        // Get button size (assuming the UI calculation based on the viewport size)
+        // Using a reasonable hit area for the button
+        let button_width = window.width() * 0.4; // 40% of window width as in the button definition
+        let button_height = window.height() * 0.1; // 10% of window height as in the button definition
+
+        let half_width = button_width * 0.5;
+        let half_height = button_height * 0.5;
+
+        if world_position.x >= button_position.x - half_width
+            && world_position.x <= button_position.x + half_width
+            && world_position.y >= button_position.y - half_height
+            && world_position.y <= button_position.y + half_height
+        {
+            keys.reset_all();
+            next_state.set(AppState::Game);
         }
     }
 }

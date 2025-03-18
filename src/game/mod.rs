@@ -2,7 +2,7 @@ pub mod components;
 pub mod constants;
 mod events;
 mod resources;
-mod systems;
+pub mod systems;
 mod ui;
 
 use crate::{
@@ -35,13 +35,16 @@ pub(super) fn plugin(app: &mut App) {
                 .run_if(in_state(AppState::Game))
                 .run_if(in_state(GameState::Playing)),
         )
-        .add_systems(Update, global_input)
+        .add_systems(
+            Update,
+            global_input.run_if(not(in_state(AppState::Loading))),
+        )
         .insert_resource(Score::default())
         .insert_resource(SnakeSegments::default())
         .insert_resource(LastTailPosition::default())
         .add_systems(OnEnter(AppState::Menu), ui::menu::setup_menu)
         .add_systems(OnExit(AppState::Menu), despawn_screen::<MainMenuScreen>)
-        .add_systems(OnEnter(AppState::Game), setup_game)
+        .add_systems(OnEnter(AppState::Game), (setup_game, set_playing_state))
         .add_systems(
             OnExit(AppState::Game),
             (
@@ -84,4 +87,8 @@ pub(super) fn plugin(app: &mut App) {
         .add_systems(PostUpdate, (position_translation, size_scaling))
         .add_event::<FoodEvent>()
         .add_event::<GrowthEvent>();
+}
+
+fn set_playing_state(mut game_state: ResMut<NextState<GameState>>) {
+    game_state.set(GameState::Playing);
 }

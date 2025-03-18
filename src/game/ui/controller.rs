@@ -1,20 +1,62 @@
 use crate::{
     assets::{ControllerAsset, ImageAsset},
     game::{
-        constants::*, events::ControllerEvent, ArbitraryPosition, Controller, Direction,
-        MainGameScreen, Position, Size,
+        constants::*,
+        events::ControllerEvent,
+        systems::world::{AppState, GameState},
+        ArbitraryPosition, Controller, Direction, MainGameScreen, Position, Size,
     },
 };
-use bevy::prelude::*;
+use bevy::{input::touch::Touches, prelude::*};
 
 pub fn plugin(app: &mut App) {
     app.add_event::<ControllerEvent>()
-        .add_systems(Startup, insert_controller)
-        .add_systems(Update, controller_input)
-        .add_systems(Update, handle_controller_events);
+        .add_systems(
+            Update,
+            setup_controller_if_needed
+                .run_if(in_state(AppState::Game))
+                .run_if(in_state(GameState::Playing)),
+        )
+        .add_systems(OnExit(GameState::Playing), despawn_controller)
+        .add_systems(
+            Update,
+            controller_mouse_input
+                .run_if(in_state(GameState::Playing))
+                .run_if(not(in_state(AppState::Loading))),
+        )
+        .add_systems(
+            Update,
+            controller_touch_input
+                .run_if(in_state(GameState::Playing))
+                .run_if(not(in_state(AppState::Loading))),
+        )
+        .add_systems(
+            Update,
+            handle_controller_events
+                .run_if(in_state(GameState::Playing))
+                .run_if(not(in_state(AppState::Loading))),
+        );
 }
 
-fn insert_controller(mut commands: Commands, controller_asset: Res<ControllerAsset>) {
+fn despawn_controller(mut commands: Commands, query: Query<Entity, With<Controller>>) {
+    for entity in query.iter() {
+        commands.entity(entity).despawn_recursive();
+    }
+}
+
+// Check if controllers already exist, if not, set them up
+fn setup_controller_if_needed(
+    mut commands: Commands,
+    controller_asset: Res<ControllerAsset>,
+    controller_query: Query<&Controller>,
+) {
+    // Only setup controllers if none exist yet
+    if controller_query.is_empty() {
+        setup_controller(&mut commands, controller_asset);
+    }
+}
+
+fn setup_controller(commands: &mut Commands, controller_asset: Res<ControllerAsset>) {
     let controller_buttons = [
         (CONTROLLER_UP, 3.5, 1.75, Direction::Up),
         (CONTROLLER_DOWN, 3.5, 0.25, Direction::Down),
@@ -23,12 +65,52 @@ fn insert_controller(mut commands: Commands, controller_asset: Res<ControllerAss
     ];
 
     for (index, x, y, dir) in controller_buttons {
-        spawn_controller_button(&mut commands, &controller_asset, index, x, y, dir);
+        spawn_controller_button(commands, &controller_asset, index, x, y, dir);
+    }
+}
+
+/// Shared function to process a pointer position (from mouse or touch)
+fn process_pointer_input(
+    pointer_position: Vec2,
+    window: &Window,
+    camera: &Camera,
+    camera_transform: &GlobalTransform,
+    controller_sprites: &Query<(&GlobalTransform, &Direction, &Position), With<Controller>>,
+    controller_events: &mut EventWriter<ControllerEvent>,
+) {
+    // Get the camera to convert screen coordinates to world coordinates
+    let Ok(world_position) = camera.viewport_to_world_2d(camera_transform, pointer_position) else {
+        return;
+    };
+
+    let window_width = window.width();
+    let window_height = window.height();
+
+    let tile_width = window_width / ARENA_WIDTH as f32;
+    let tile_height = window_height / ARENA_HEIGHT as f32;
+
+    // Check if any controller sprite was activated
+    for (transform, direction, _) in controller_sprites.iter() {
+        let sprite_position = transform.translation().truncate();
+
+        // Use a smaller hit area
+        let half_size_x = tile_width * 0.35;
+        let half_size_y = tile_height * 0.35;
+
+        if world_position.x >= sprite_position.x - half_size_x
+            && world_position.x <= sprite_position.x + half_size_x
+            && world_position.y >= sprite_position.y - half_size_y
+            && world_position.y <= sprite_position.y + half_size_y
+        {
+            controller_events.send(ControllerEvent {
+                direction: *direction,
+            });
+        }
     }
 }
 
 /// System to handle controller button clicks
-fn controller_input(
+fn controller_mouse_input(
     mouse_button_input: Res<ButtonInput<MouseButton>>,
     window_q: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
@@ -44,36 +126,39 @@ fn controller_input(
         return;
     };
 
-    // Get the camera to convert screen coordinates to world coordinates
     let (camera, camera_transform) = camera_q.get_single().unwrap();
-    let Ok(cursor_world_position) = camera.viewport_to_world_2d(camera_transform, cursor_position)
-    else {
-        return;
-    };
 
-    let window_width = window.width();
-    let window_height = window.height();
+    process_pointer_input(
+        cursor_position,
+        window,
+        camera,
+        camera_transform,
+        &controller_sprites,
+        &mut controller_events,
+    );
+}
 
-    let tile_width = window_width / ARENA_WIDTH as f32;
-    let tile_height = window_height / ARENA_HEIGHT as f32;
+/// System to handle controller button touch events
+fn controller_touch_input(
+    touches: Res<Touches>,
+    window_q: Query<&Window>,
+    camera_q: Query<(&Camera, &GlobalTransform)>,
+    controller_sprites: Query<(&GlobalTransform, &Direction, &Position), With<Controller>>,
+    mut controller_events: EventWriter<ControllerEvent>,
+) {
+    // Only process newly pressed touches
+    for touch in touches.iter_just_pressed() {
+        let window = window_q.get_single().unwrap();
+        let (camera, camera_transform) = camera_q.get_single().unwrap();
 
-    // Check if any controller sprite was clicked
-    for (transform, direction, _) in controller_sprites.iter() {
-        let sprite_position = transform.translation().truncate();
-
-        // Use a smaller hit area
-        let half_size_x = tile_width * 0.35;
-        let half_size_y = tile_height * 0.35;
-
-        if cursor_world_position.x >= sprite_position.x - half_size_x
-            && cursor_world_position.x <= sprite_position.x + half_size_x
-            && cursor_world_position.y >= sprite_position.y - half_size_y
-            && cursor_world_position.y <= sprite_position.y + half_size_y
-        {
-            controller_events.send(ControllerEvent {
-                direction: *direction,
-            });
-        }
+        process_pointer_input(
+            touch.position(),
+            window,
+            camera,
+            camera_transform,
+            &controller_sprites,
+            &mut controller_events,
+        );
     }
 }
 

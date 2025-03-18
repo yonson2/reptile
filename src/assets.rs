@@ -29,6 +29,7 @@ fn load_assets(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+    mut next_state: ResMut<NextState<crate::game::systems::world::AppState>>,
 ) {
     let texture = asset_server.load("sprites/snake.png");
     let layout = TextureAtlasLayout::from_grid(UVec2::splat(16), 16, 22, None, None);
@@ -56,4 +57,7 @@ fn load_assets(
 
     // Log that assets were loaded successfully
     info!("Game assets loaded successfully");
+    
+    // Transition to the menu state once assets are loaded
+    next_state.set(crate::game::systems::world::AppState::Menu);
 }
