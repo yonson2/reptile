@@ -1,5 +1,5 @@
-mod components;
-mod constants;
+pub mod components;
+pub mod constants;
 mod events;
 mod resources;
 mod systems;

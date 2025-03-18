@@ -36,13 +36,13 @@ pub(super) struct ScoreboardUi;
 pub(super) struct UserInput;
 
 #[derive(Debug, Component, Clone, Copy, PartialEq, Eq)]
-pub(super) struct Position {
+pub struct Position {
     pub x: i32,
     pub y: i32,
 }
 
 #[derive(Component)]
-pub(super) struct Size {
+pub struct Size {
     pub width: f32,
     pub height: f32,
 }
@@ -56,4 +56,4 @@ impl Size {
 }
 
 #[derive(Component)]
-pub(super) struct ImageAsset;
+pub struct ImageAsset;

@@ -3,7 +3,7 @@ use bevy::{color::Color, ui::Val};
 // Constants
 //opens mouth at +1/2/3/4 (bigger each) for each direciton
 
-pub(super) const SPRITE_PIXEL_SIZE: f32 = 16.;
+pub const SPRITE_PIXEL_SIZE: f32 = 16.;
 
 pub(super) const SNAKE_HEAD_UP: usize = 48;
 pub(super) const SNAKE_HEAD_DOWN: usize = 80;
@@ -36,5 +36,5 @@ pub(super) const SCORE_COLOR: Color = Color::srgb(1.0, 0.5, 0.5);
 
 //TODO: this is closely related to the window resolution if we don't plan on resizing
 // think about this.
-pub(super) const ARENA_WIDTH: u32 = 8;
-pub(super) const ARENA_HEIGHT: u32 = 16;
+pub const ARENA_WIDTH: u32 = 8;
+pub const ARENA_HEIGHT: u32 = 16;

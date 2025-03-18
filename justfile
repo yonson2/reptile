@@ -3,6 +3,5 @@ serve-web:
     mkdir -p release
     cp -r assets release/
     cp index.html release/
-    cp canvas-fix.js release/
     wasm-bindgen --out-dir release --target web ./target/wasm32-unknown-unknown/wasm-release/reptile.wasm
     npx serve release/
