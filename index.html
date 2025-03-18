@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  < !-- https: //github.com/bevyengine/bevy/discussions/3638 -->
   <style>
     body {
       margin: 0;
@@ -16,9 +17,7 @@
       align-items: center;
     }
 
-    < !-- https: //github.com/bevyengine/bevy/discussions/3638 -->
     @media (pointer: coarse) {
-
       /* mobile device */
       canvas {
         width: 100% !important;
@@ -27,9 +26,7 @@
       }
     }
 
-    @media (pointer: fine),
-    (pointer: none) {
-
+    @media (pointer: fine), (pointer: none) {
       /* desktop */
       canvas {
         height: 100% !important;
@@ -38,7 +35,6 @@
     }
 
     @media (pointer: fine) and (any-pointer: coarse) {
-
       /* touch desktop */
       canvas {
         height: 100% !important;
