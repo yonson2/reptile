@@ -7,7 +7,7 @@ use bevy::prelude::*;
 use bevy::{audio::PlaybackMode, ecs::system::SystemParam, window::PrimaryWindow};
 use world::GameState;
 
-use crate::assets::{AudioAsset, GameAsset};
+use crate::assets::{AudioAsset, SnakeAsset};
 
 pub mod world;
 
@@ -21,7 +21,7 @@ pub(super) fn setup_game(
     mut score: ResMut<Score>,
     mut segments: ResMut<SnakeSegments>,
     mut food_writer: EventWriter<FoodEvent>,
-    game_assets: Res<GameAsset>,
+    snake_asset: Res<SnakeAsset>,
 ) {
     // We cleanup the score here because we also use it
     // when we have finished the game so game destructors
@@ -62,9 +62,9 @@ pub(super) fn setup_game(
     *segments = SnakeSegments(vec![
         commands
             .spawn(Sprite::from_atlas_image(
-                game_assets.texture.clone(),
+                snake_asset.0.texture.clone(),
                 TextureAtlas {
-                    layout: game_assets.atlas_layout.clone(),
+                    layout: snake_asset.0.atlas_layout.clone(),
                     index: SNAKE_HEAD_UP,
                 },
             ))
@@ -78,7 +78,7 @@ pub(super) fn setup_game(
         spawn_snake_segment(
             commands,
             Position { x: 5, y: 4 },
-            game_assets,
+            snake_asset,
             SNAKE_TAIL_UP,
         ),
     ]);
@@ -89,14 +89,14 @@ pub(super) fn setup_game(
 pub(super) fn spawn_snake_segment(
     mut commands: Commands,
     position: Position,
-    game_assets: Res<GameAsset>,
+    snake_asset: Res<SnakeAsset>,
     sprite_index: usize,
 ) -> Entity {
     commands
         .spawn(Sprite::from_atlas_image(
-            game_assets.texture.clone(),
+            snake_asset.0.texture.clone(),
             TextureAtlas {
-                layout: game_assets.atlas_layout.clone(),
+                layout: snake_asset.0.atlas_layout.clone(),
                 index: sprite_index,
             },
         ))
@@ -108,7 +108,7 @@ pub(super) fn spawn_snake_segment(
         .id()
 }
 
-pub(super) fn spawn_food(mut commands: Commands, position: Position, game_assets: Res<GameAsset>) {
+pub(super) fn spawn_food(mut commands: Commands, position: Position, snake_asset: Res<SnakeAsset>) {
     // Randomly choose between the three food colors
     let food_index = match fastrand::u8(0..3) {
         0 => FOOD_RED,
@@ -118,9 +118,9 @@ pub(super) fn spawn_food(mut commands: Commands, position: Position, game_assets
 
     commands
         .spawn(Sprite::from_atlas_image(
-            game_assets.texture.clone(),
+            snake_asset.0.texture.clone(),
             TextureAtlas {
-                layout: game_assets.atlas_layout.clone(),
+                layout: snake_asset.0.atlas_layout.clone(),
                 index: food_index,
             },
         ))
@@ -136,7 +136,7 @@ pub(super) fn spawn_food_empty_position(
     positions: Query<&Position>,
     food: Query<&Position, With<Food>>,
     mut food_reader: EventReader<FoodEvent>,
-    game_assets: Res<GameAsset>,
+    snake_asset: Res<SnakeAsset>,
 ) {
     if food_reader.read().next().is_some() && food.iter().count() == 0 {
         let mut new_food_position;
@@ -153,7 +153,7 @@ pub(super) fn spawn_food_empty_position(
             }
             break;
         }
-        spawn_food(commands, new_food_position, game_assets);
+        spawn_food(commands, new_food_position, snake_asset);
     }
 }
 
@@ -401,7 +401,7 @@ pub(super) struct SnakeGrowthParams<'w, 's> {
     segments: ResMut<'w, SnakeSegments>,
     growth_reader: EventReader<'w, 's, GrowthEvent>,
     food_writer: EventWriter<'w, FoodEvent>,
-    game_assets: Res<'w, GameAsset>,
+    snake_asset: Res<'w, SnakeAsset>,
     audio: Res<'w, AudioAsset>,
     score: ResMut<'w, Score>,
     score_root: Single<'w, Entity, (With<ScoreboardUi>, With<Text>)>,
@@ -432,7 +432,7 @@ pub(super) fn snake_growth(mut commands: Commands, mut params: SnakeGrowthParams
                 .last_tail_position
                 .0
                 .expect("last tail should be set when growing"),
-            params.game_assets,
+            params.snake_asset,
             index,
         ));
         params.score.0 += 1;
@@ -475,7 +475,7 @@ pub(super) fn size_scaling(
 
         for (sprite_size, mut transform, is_image) in &mut q_scale {
             if is_image.is_some() {
-                let sprite_pixel_size = 16.0; // Size of one sprite in the atlas
+                let sprite_pixel_size = SPRITE_PIXEL_SIZE;
 
                 transform.scale = Vec3::new(
                     tile_width * sprite_size.width / sprite_pixel_size,

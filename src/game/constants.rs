@@ -2,6 +2,9 @@ use bevy::{color::Color, ui::Val};
 
 // Constants
 //opens mouth at +1/2/3/4 (bigger each) for each direciton
+
+pub(super) const SPRITE_PIXEL_SIZE: f32 = 16.;
+
 pub(super) const SNAKE_HEAD_UP: usize = 48;
 pub(super) const SNAKE_HEAD_DOWN: usize = 80;
 pub(super) const SNAKE_HEAD_LEFT: usize = 64;

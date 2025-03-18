@@ -1,10 +1,16 @@
 use bevy::prelude::*;
 
 #[derive(Resource)]
-pub struct GameAsset {
+pub struct SpriteAsset {
     pub texture: Handle<Image>,
     pub atlas_layout: Handle<TextureAtlasLayout>,
 }
+
+#[derive(Resource)]
+pub struct SnakeAsset(pub SpriteAsset);
+
+#[derive(Resource)]
+pub struct DpadAsset(pub SpriteAsset);
 
 #[derive(Resource)]
 pub struct AudioAsset(pub Handle<AudioSource>);
@@ -21,26 +27,28 @@ fn load_assets(
     asset_server: Res<AssetServer>,
     mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    // Load the snake texture
     let texture = asset_server.load("sprites/snake.png");
-    let audio = asset_server.load("sounds/crunchybite.ogg");
-    let font = asset_server.load("fonts/fibberish.ttf");
-
-    // Create a texture atlas layout for the snake
-    // The index calculation is the key part:
-    // to get a specific sprite at column C, row R in a texture atlas with W columns,
-    // the formula is `R * W + C` (for 0-based indexing)
-    // or `(R-1) * W + (C-1)` (for 1-based indexing).
     let layout = TextureAtlasLayout::from_grid(UVec2::splat(16), 16, 22, None, None);
     let atlas_layout = texture_atlas_layouts.add(layout);
 
-    // Store the assets in a resource so they can be accessed from other systems
-    commands.insert_resource(GameAsset {
+    commands.insert_resource(SnakeAsset(SpriteAsset {
         texture,
         atlas_layout,
-    });
+    }));
 
+    let texture = asset_server.load("sprites/dpad.png");
+    let layout = TextureAtlasLayout::from_grid(UVec2::splat(16), 3, 4, None, None);
+    let atlas_layout = texture_atlas_layouts.add(layout);
+
+    commands.insert_resource(DpadAsset(SpriteAsset {
+        texture,
+        atlas_layout,
+    }));
+
+    let audio = asset_server.load("sounds/crunchybite.ogg");
     commands.insert_resource(AudioAsset(audio));
+
+    let font = asset_server.load("fonts/fibberish.ttf");
     commands.insert_resource(FontAsset(font));
 
     // Log that assets were loaded successfully
