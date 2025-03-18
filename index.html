@@ -20,8 +20,8 @@
     @media (pointer: coarse) {
       /* mobile device */
       canvas {
-        width: 100% !important;
-        height: 100% !important;
+        width: 90% !important;
+        height: 90% !important;
         object-fit: contain;
       }
     }
@@ -76,6 +76,9 @@
       100% {
         transform: rotate(360deg);
       }
+    }
+    .hidden {
+    display: none;
     }
   </style>
 </head>
@@ -142,6 +145,9 @@
         document.addEventListener(eventName, resumeAllContexts);
       });
     })();
+    setTimeout(function() {
+      document.getElementById('loading-spinner').classList.add('hidden');
+    }, 8000);
   </script>
   <script type="module">
     import init from './reptile.js'
