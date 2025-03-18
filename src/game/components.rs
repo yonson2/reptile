@@ -18,6 +18,15 @@ impl Direction {
             Self::Down => Self::Up,
         }
     }
+
+    pub fn to_keycode(self) -> KeyCode {
+        match self {
+            Self::Left => KeyCode::ArrowLeft,
+            Self::Right => KeyCode::ArrowRight,
+            Self::Up => KeyCode::ArrowUp,
+            Self::Down => KeyCode::ArrowDown,
+        }
+    }
 }
 
 #[derive(Component)]

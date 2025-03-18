@@ -33,20 +33,20 @@ pub(super) const TEXT_COLOR: Color = Color::srgb(0.5, 0.5, 1.0);
 pub(super) const SCORE_COLOR: Color = Color::srgb(1.0, 0.5, 0.5);
 
 pub(super) const CONTROLLER_UP: usize = 0;
-pub(super) const CONTROLLER_UP_HALF_PRESSED: usize = 1;
-pub(super) const CONTROLLER_UP_FULLY_PRESSED: usize = 2;
+pub(super) const CONTROLLER_HALF_UP: usize = 1;
+pub(super) const CONTROLLER_PRESSED_UP: usize = 2;
 
 pub(super) const CONTROLLER_DOWN: usize = 9;
 pub(super) const CONTROLLER_HALF_DOWN: usize = 10;
-pub(super) const CONTROLLER_FULLY_DOWN: usize = 11;
+pub(super) const CONTROLLER_PRESSED_DOWN: usize = 11;
 
 pub(super) const CONTROLLER_LEFT: usize = 6;
 pub(super) const CONTROLLER_HALF_LEFT: usize = 7;
-pub(super) const CONTROLLER_FULLY_LEFT: usize = 8;
+pub(super) const CONTROLLER_PRESSED_LEFT: usize = 8;
 
 pub(super) const CONTROLLER_RIGHT: usize = 3;
 pub(super) const CONTROLLER_HALF_RIGHT: usize = 4;
-pub(super) const CONTROLLER_FULLY_RIGHT: usize = 5;
+pub(super) const CONTROLLER_PRESSED_RIGHT: usize = 5;
 
 // pub(super) const FOOD_COLOR: Color = Color::srgb(1.0, 0.0, 1.0);
 
