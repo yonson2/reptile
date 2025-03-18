@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-#[derive(Component, PartialEq, Copy, Clone, Default)]
+#[derive(Component, PartialEq, Copy, Clone, Default, Debug)]
 pub(super) enum Direction {
     #[default]
     Up,
@@ -35,10 +35,22 @@ pub(super) struct ScoreboardUi;
 #[derive(Component)]
 pub(super) struct UserInput;
 
-#[derive(Debug, Component, Clone, Copy, PartialEq, Eq)]
-pub struct Position {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FixedPosition {
     pub x: i32,
     pub y: i32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ArbitraryPosition {
+    pub x: f32,
+    pub y: f32,
+}
+
+#[derive(Debug, Component, Clone, Copy, PartialEq)]
+pub enum Position {
+    Arbitrary(ArbitraryPosition),
+    Fixed(FixedPosition),
 }
 
 #[derive(Component)]
@@ -56,4 +68,4 @@ impl Size {
 }
 
 #[derive(Component)]
-pub struct ImageAsset;
+pub struct Controller;

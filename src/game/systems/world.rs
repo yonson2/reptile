@@ -1,7 +1,8 @@
-use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
+use crate::assets::ImageAsset;
 use crate::game::components::*;
 use crate::game::constants::*;
+use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
 
 pub fn global_input(
     mut keys: ResMut<ButtonInput<KeyCode>>,
@@ -56,12 +57,23 @@ pub fn position_translation(
             let tile_size = bound_window / bound_game;
             pos / bound_game * bound_window - (bound_window / 2.) + (tile_size / 2.)
         }
-        for (pos, mut transform) in q.iter_mut() {
-            transform.translation = Vec3::new(
-                convert(pos.x as f32, window.width(), ARENA_WIDTH as f32),
-                convert(pos.y as f32, window.height(), ARENA_HEIGHT as f32),
-                0.0,
-            );
+        for (&pos, mut transform) in q.iter_mut() {
+            match pos {
+                Position::Fixed(pos) => {
+                    transform.translation = Vec3::new(
+                        convert(pos.x as f32, window.width(), ARENA_WIDTH as f32),
+                        convert(pos.y as f32, window.height(), ARENA_HEIGHT as f32),
+                        0.0,
+                    );
+                }
+                Position::Arbitrary(pos) => {
+                    transform.translation = Vec3::new(
+                        convert(pos.x, window.width(), ARENA_WIDTH as f32),
+                        convert(pos.y, window.height(), ARENA_HEIGHT as f32),
+                        0.0,
+                    );
+                }
+            };
         }
     }
 }

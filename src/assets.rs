@@ -10,13 +10,16 @@ pub struct SpriteAsset {
 pub struct SnakeAsset(pub SpriteAsset);
 
 #[derive(Resource)]
-pub struct DpadAsset(pub SpriteAsset);
+pub struct ControllerAsset(pub SpriteAsset);
 
 #[derive(Resource)]
 pub struct AudioAsset(pub Handle<AudioSource>);
 
 #[derive(Resource)]
 pub struct FontAsset(pub Handle<Font>);
+
+#[derive(Component)]
+pub struct ImageAsset;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_systems(PreStartup, load_assets);
@@ -40,7 +43,7 @@ fn load_assets(
     let layout = TextureAtlasLayout::from_grid(UVec2::splat(16), 3, 4, None, None);
     let atlas_layout = texture_atlas_layouts.add(layout);
 
-    commands.insert_resource(DpadAsset(SpriteAsset {
+    commands.insert_resource(ControllerAsset(SpriteAsset {
         texture,
         atlas_layout,
     }));

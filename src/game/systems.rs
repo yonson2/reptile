@@ -7,7 +7,7 @@ use bevy::prelude::*;
 use bevy::{audio::PlaybackMode, ecs::system::SystemParam};
 use world::GameState;
 
-use crate::assets::{AudioAsset, SnakeAsset};
+use crate::assets::{AudioAsset, ImageAsset, SnakeAsset};
 
 pub mod world;
 
@@ -72,12 +72,12 @@ pub(super) fn setup_game(
             .insert(MainGameScreen)
             .insert(SnakeHead)
             .insert(Direction::default())
-            .insert(Position { x: 5, y: 5 })
+            .insert(Position::Fixed(FixedPosition { x: 5, y: 5 }))
             .insert(Size::square(1.))
             .id(),
         spawn_snake_segment(
             commands,
-            Position { x: 5, y: 4 },
+            Position::Fixed(FixedPosition { x: 5, y: 4 }),
             snake_asset,
             SNAKE_TAIL_UP,
         ),
@@ -141,10 +141,10 @@ pub(super) fn spawn_food_empty_position(
     if food_reader.read().next().is_some() && food.iter().count() == 0 {
         let mut new_food_position;
         'outer: loop {
-            new_food_position = Position {
+            new_food_position = Position::Fixed(FixedPosition {
                 x: (fastrand::f32() * ARENA_WIDTH as f32) as i32,
                 y: (fastrand::f32() * ARENA_HEIGHT as f32) as i32,
-            };
+            });
 
             for &pos in &positions {
                 if new_food_position == pos {
@@ -211,22 +211,28 @@ pub(super) fn snake_repaint(
     // Helper function to determine the relative direction between two positions
     // accounting for arena wrapping
     fn get_direction(from: &Position, to: &Position) -> (i32, i32) {
-        let mut dx = to.x - from.x;
-        let mut dy = to.y - from.y;
+        match (from, to) {
+            (Position::Fixed(from_fixed), Position::Fixed(to_fixed)) => {
+                let mut dx = to_fixed.x - from_fixed.x;
+                let mut dy = to_fixed.y - from_fixed.y;
 
-        if dx > 1 {
-            dx = -1; // Wrapped from right to left
-        } else if dx < -1 {
-            dx = 1; // Wrapped from left to right
+                if dx > 1 {
+                    dx = -1; // Wrapped from right to left
+                } else if dx < -1 {
+                    dx = 1; // Wrapped from left to right
+                }
+
+                if dy > 1 {
+                    dy = -1; // Wrapped from bottom to top
+                } else if dy < -1 {
+                    dy = 1; // Wrapped from top to bottom
+                }
+
+                (dx, dy)
+            }
+            // Add fallback for other position types if needed
+            _ => (0, 0),
         }
-
-        if dy > 1 {
-            dy = -1; // Wrapped from bottom to top
-        } else if dy < -1 {
-            dy = 1; // Wrapped from top to bottom
-        }
-
-        (dx, dy)
     }
 
     for (i, &entity) in segments.0.iter().enumerate() {
@@ -331,31 +337,33 @@ pub(super) fn snake_movement(
         .get_mut(head_entity)
         .expect("snake head should exist");
 
-    match *head_direction {
-        Direction::Left => {
-            head_pos.x -= 1;
+    if let Position::Fixed(ref mut fixed_pos) = *head_pos {
+        match *head_direction {
+            Direction::Left => {
+                fixed_pos.x -= 1;
+            }
+            Direction::Right => {
+                fixed_pos.x += 1;
+            }
+            Direction::Down => {
+                fixed_pos.y -= 1;
+            }
+            Direction::Up => {
+                fixed_pos.y += 1;
+            }
         }
-        Direction::Right => {
-            head_pos.x += 1;
-        }
-        Direction::Down => {
-            head_pos.y -= 1;
-        }
-        Direction::Up => {
-            head_pos.y += 1;
-        }
-    }
 
-    if head_pos.x < 0 {
-        head_pos.x = ARENA_WIDTH as i32 - 1;
-    } else if head_pos.x >= ARENA_WIDTH as i32 {
-        head_pos.x = 0;
-    }
+        if fixed_pos.x < 0 {
+            fixed_pos.x = ARENA_WIDTH as i32 - 1;
+        } else if fixed_pos.x >= ARENA_WIDTH as i32 {
+            fixed_pos.x = 0;
+        }
 
-    if head_pos.y < 0 {
-        head_pos.y = ARENA_HEIGHT as i32 - 1;
-    } else if head_pos.y >= ARENA_HEIGHT as i32 {
-        head_pos.y = 0;
+        if fixed_pos.y < 0 {
+            fixed_pos.y = ARENA_HEIGHT as i32 - 1;
+        } else if fixed_pos.y >= ARENA_HEIGHT as i32 {
+            fixed_pos.y = 0;
+        }
     }
 
     if segment_positions.contains(&head_pos) {
@@ -467,10 +475,17 @@ pub(super) fn game_over_input(
 //
 
 fn open_mouth(food: Position, head: Position) -> usize {
-    let manhattan_distance = (food.x - head.x).abs() + (food.y - head.y).abs();
-    if manhattan_distance <= 4 {
-        5 - manhattan_distance as usize
-    } else {
-        0
+    match (food, head) {
+        (Position::Fixed(food_fixed), Position::Fixed(head_fixed)) => {
+            let manhattan_distance =
+                (food_fixed.x - head_fixed.x).abs() + (food_fixed.y - head_fixed.y).abs();
+            if manhattan_distance <= 4 {
+                5 - manhattan_distance as usize
+            } else {
+                0
+            }
+        }
+        // Add fallback for other position types if needed
+        _ => 0,
     }
 }

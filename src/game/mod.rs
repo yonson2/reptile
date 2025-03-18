@@ -15,12 +15,16 @@ use crate::{
     },
 };
 use bevy::{prelude::*, time::common_conditions::on_timer};
-use ui::menu::{GameOverScreen, MainMenuScreen};
+use ui::{
+    controller,
+    menu::{GameOverScreen, MainMenuScreen},
+};
 
 use std::time::Duration;
 
 pub(super) fn plugin(app: &mut App) {
-    app.insert_resource(ClearColor(Color::srgb(0.04, 0.04, 0.04)))
+    app.add_plugins(controller::plugin)
+        .insert_resource(ClearColor(Color::srgb(0.04, 0.04, 0.04)))
         .init_state::<PausedState>()
         .init_state::<AppState>()
         .init_state::<GameState>()
