@@ -15,6 +15,7 @@ use crate::{
     },
 };
 use bevy::{prelude::*, time::common_conditions::on_timer};
+#[allow(unused_imports)]
 use ui::{
     controller,
     menu::{GameOverScreen, MainMenuScreen},
@@ -23,6 +24,7 @@ use ui::{
 use std::time::Duration;
 
 pub(super) fn plugin(app: &mut App) {
+    #[allow(dead_code)]
     #[cfg(target_arch = "wasm32")]
     {
         app.add_plugins(controller::plugin);

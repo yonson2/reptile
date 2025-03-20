@@ -9,6 +9,7 @@ use crate::{
 };
 use bevy::{input::touch::Touches, prelude::*};
 
+#[allow(dead_code)]
 pub fn plugin(app: &mut App) {
     app.add_event::<ControllerEvent>()
         .add_systems(

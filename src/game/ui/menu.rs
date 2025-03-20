@@ -1,6 +1,9 @@
 use bevy::{input::touch::Touches, prelude::*};
 
-use crate::game::{constants::*, AppState, Score};
+use crate::{
+    assets::FontAsset,
+    game::{constants::*, AppState, Score},
+};
 
 const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
@@ -11,8 +14,8 @@ pub struct MainMenuScreen;
 #[derive(Component)]
 pub struct GameOverScreen;
 
-pub fn setup_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let font = asset_server.load("fonts/fibberish.ttf"); //TODO: use handle from
+pub fn setup_menu(mut commands: Commands, font_asset: Res<FontAsset>) {
+    let font = font_asset.0.clone();
     commands
         .spawn((
             Node {
@@ -90,12 +93,13 @@ type ButtonQuery<'a, 'b> = Query<
     With<Button>,
 >;
 
+type InteractionQuery<'a, 'b> =
+    Query<'a, 'b, (&'static Interaction, Entity), (Changed<Interaction>, With<Button>)>;
 /// Updated menu function to handle both mouse clicks and touch events
 pub fn menu(
     mut next_state: ResMut<NextState<AppState>>,
     mut button_query: ButtonQuery,
-    interaction_query: Query<(&Interaction, Entity), (Changed<Interaction>, With<Button>)>,
-    mouse_button_input: Res<ButtonInput<MouseButton>>,
+    interaction_query: InteractionQuery,
     touches: Res<Touches>,
     window_q: Query<&Window>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
@@ -209,6 +213,7 @@ pub fn setup_game_over(mut commands: Commands, asset_server: Res<AssetServer>, s
         });
 
     // Create a single container for all text elements
+    #[allow(unused_mut)]
     let mut play_again_text = "(Press Up to play again)";
     #[cfg(target_arch = "wasm32")]
     {

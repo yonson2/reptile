@@ -1,6 +1,10 @@
-use bevy::{asset::AssetMetaCheck, log::LogPlugin, prelude::*, window::WindowResolution};
+#[allow(unused_imports)]
+use bevy::asset::AssetMetaCheck;
+
+use bevy::{log::LogPlugin, prelude::*, window::WindowResolution};
 
 pub(super) fn plugin(app: &mut App) {
+    #[allow(unused_mut)]
     let mut plugins = DefaultPlugins
         .set(WindowPlugin {
             primary_window: Some(Window {
